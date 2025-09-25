@@ -6,13 +6,13 @@ import base64
 import os
 
 try:
-    from docx import Document
-    from docx.shared import Inches
     from reportlab.pdfgen import canvas
     from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+    from reportlab.lib.units import inch
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
     from PyPDF2 import PdfWriter, PdfReader
-    import subprocess
-    import tempfile
 except ImportError as e:
     logging.getLogger(__name__).warning(f"Required libraries not installed: {e}. PDF generation will not work.")
 
@@ -24,10 +24,10 @@ class AccountMoveWarranty(models.Model):
 
     def generate_warranty_pdfs(self):
         """
-        Generate warranty PDFs by creating Word documents programmatically with required fields.
+        Generate warranty PDFs directly using reportlab with required fields.
         
         Business Rules:
-        - Create Word documents programmatically (no external template files)
+        - Create PDF documents directly using reportlab (no external dependencies)
         - Fill customer name, product brand, warranty period
         - Generate one PDF per product with warranty
         - Exclude product with ID 7884
@@ -99,7 +99,7 @@ class AccountMoveWarranty(models.Model):
 
     def _generate_filled_warranty_pdf(self, products):
         """
-        Generate warranty PDF by creating Word documents with product data.
+        Generate warranty PDF directly using reportlab with product data.
         
         Args:
             products: List of product.product records
@@ -113,7 +113,7 @@ class AccountMoveWarranty(models.Model):
             
             # Process each product
             for product in products:
-                filled_pdf = self._create_warranty_document(product)
+                filled_pdf = self._create_warranty_pdf(product)
                 if filled_pdf:
                     # Add the filled page to output
                     reader = PdfReader(BytesIO(filled_pdf))
@@ -132,19 +132,24 @@ class AccountMoveWarranty(models.Model):
             _logger.error(f'Error generating filled warranty PDF: {str(e)}')
             return None
 
-    def _create_warranty_document(self, product):
+    def _create_warranty_pdf(self, product):
         """
-        Create warranty document with product-specific data.
+        Create warranty PDF directly using reportlab with product-specific data.
         
         Args:
             product: Product record
             
         Returns:
-            bytes: Filled PDF content
+            bytes: PDF content as bytes
         """
         try:
-            # Create a new Word document
-            doc = Document()
+            # Create buffer for PDF content
+            buffer = BytesIO()
+            
+            # Create PDF document
+            doc = SimpleDocTemplate(buffer, pagesize=A4, 
+                                  rightMargin=72, leftMargin=72, 
+                                  topMargin=72, bottomMargin=18)
             
             # Get customer name from invoice partner
             customer_name = self.partner_id.name or "___________________"
@@ -162,158 +167,130 @@ class AccountMoveWarranty(models.Model):
             invoice_date = self.invoice_date.strftime('%d/%m/%Y') if self.invoice_date else ''
             
             # Create warranty certificate content
-            self._add_warranty_content(doc, customer_name, product_name, warranty_period, invoice_number, invoice_date)
+            story = self._create_warranty_content(customer_name, product_name, warranty_period, invoice_number, invoice_date)
             
-            # Save document to temporary file
-            with tempfile.NamedTemporaryFile(suffix='.docx', delete=False) as temp_docx:
-                doc.save(temp_docx.name)
-                temp_docx_path = temp_docx.name
+            # Build PDF
+            doc.build(story)
             
-            # Convert Word document to PDF
-            pdf_content = self._convert_docx_to_pdf(temp_docx_path)
-            
-            # Clean up temporary file
-            os.unlink(temp_docx_path)
+            # Get PDF content
+            pdf_content = buffer.getvalue()
+            buffer.close()
             
             return pdf_content
             
         except Exception as e:
-            _logger.error(f'Error creating warranty document for product {product.id}: {str(e)}')
+            _logger.error(f'Error creating warranty PDF for product {product.id}: {str(e)}')
             return None
 
-    def _add_warranty_content(self, doc, customer_name, product_name, warranty_period, invoice_number, invoice_date):
+    def _create_warranty_content(self, customer_name, product_name, warranty_period, invoice_number, invoice_date):
         """
-        Add warranty certificate content to the document.
+        Create warranty certificate content for PDF.
         
         Args:
-            doc: Word document object
             customer_name (str): Customer name
             product_name (str): Product name
             warranty_period (str): Warranty period in months
             invoice_number (str): Invoice number
             invoice_date (str): Invoice date
+            
+        Returns:
+            list: Story elements for PDF
         """
-        from docx.shared import Inches, Pt
-        from docx.enum.text import WD_ALIGN_PARAGRAPH
-        from docx.enum.table import WD_TABLE_ALIGNMENT
+        # Get styles
+        styles = getSampleStyleSheet()
+        
+        # Create custom styles
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=24,
+            spaceAfter=30,
+            alignment=TA_CENTER,
+            fontName='Helvetica-Bold'
+        )
+        
+        heading_style = ParagraphStyle(
+            'CustomHeading',
+            parent=styles['Heading2'],
+            fontSize=16,
+            spaceAfter=12,
+            fontName='Helvetica-Bold'
+        )
+        
+        normal_style = ParagraphStyle(
+            'CustomNormal',
+            parent=styles['Normal'],
+            fontSize=12,
+            spaceAfter=6,
+            fontName='Helvetica'
+        )
+        
+        bold_style = ParagraphStyle(
+            'CustomBold',
+            parent=styles['Normal'],
+            fontSize=12,
+            spaceAfter=6,
+            fontName='Helvetica-Bold'
+        )
+        
+        right_style = ParagraphStyle(
+            'CustomRight',
+            parent=styles['Normal'],
+            fontSize=12,
+            spaceAfter=6,
+            fontName='Helvetica',
+            alignment=TA_RIGHT
+        )
+        
+        # Build story
+        story = []
         
         # Title
-        title = doc.add_heading('GARANCIA', 0)
-        title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        story.append(Paragraph("GARANCIA", title_style))
+        story.append(Spacer(1, 20))
         
-        # Add some space
-        doc.add_paragraph()
+        # Customer information
+        story.append(Paragraph(f"<b>Emer Mbiemer:</b> {customer_name}", normal_style))
+        story.append(Spacer(1, 10))
         
-        # Customer information section
-        customer_para = doc.add_paragraph()
-        customer_para.add_run('Emer Mbiemer: ').bold = True
-        customer_para.add_run(customer_name)
+        # Product information
+        story.append(Paragraph(f"<b>Marka:</b> {product_name}", normal_style))
+        story.append(Spacer(1, 10))
         
-        # Product information section
-        product_para = doc.add_paragraph()
-        product_para.add_run('Marka: ').bold = True
-        product_para.add_run(product_name)
+        # Warranty period
+        story.append(Paragraph(f"<b>Afati Garancise:</b> {warranty_period} Muaj", normal_style))
+        story.append(Spacer(1, 10))
         
-        # Warranty period section
-        warranty_para = doc.add_paragraph()
-        warranty_para.add_run('Afati Garancise: ').bold = True
-        warranty_para.add_run(f'{warranty_period} Muaj')
+        # Invoice information
+        story.append(Paragraph(f"<b>Numri i Fatures:</b> {invoice_number}", normal_style))
+        story.append(Paragraph(f"<b>Data e Fatures:</b> {invoice_date}", normal_style))
+        story.append(Spacer(1, 20))
         
-        # Invoice information section
-        invoice_para = doc.add_paragraph()
-        invoice_para.add_run('Numri i Fatures: ').bold = True
-        invoice_para.add_run(invoice_number)
-        
-        date_para = doc.add_paragraph()
-        date_para.add_run('Data e Fatures: ').bold = True
-        date_para.add_run(invoice_date)
-        
-        # Add some space
-        doc.add_paragraph()
-        
-        # Warranty terms section
-        terms_heading = doc.add_heading('Kushtet e Garancise', level=2)
+        # Warranty terms
+        story.append(Paragraph("Kushtet e Garancise", heading_style))
         
         terms_text = """
-        Kjo garancia mbulon defekte ne material dhe punim te produktit.
-        Garancia nuk mbulon:
-        - Demet e shkaktuara nga perdorimi gabim
-        - Demet e shkaktuara nga aksidentet
-        - Demet e shkaktuara nga modifikimet e produktit
-        - Konsumimin normal te produktit
+        Kjo garancia mbulon defekte ne material dhe punim te produktit.<br/>
+        Garancia nuk mbulon:<br/>
+        • Demet e shkaktuara nga perdorimi gabim<br/>
+        • Demet e shkaktuara nga aksidentet<br/>
+        • Demet e shkaktuara nga modifikimet e produktit<br/>
+        • Konsumimin normal te produktit<br/><br/>
         
-        Per te aktivizuar garancine, kontaktoni:
-        Telefon: [NUMRI I TELEFONIT]
-        Email: [EMAIL ADRESA]
+        Per te aktivizuar garancine, kontaktoni:<br/>
+        Telefon: [NUMRI I TELEFONIT]<br/>
+        Email: [EMAIL ADRESA]<br/>
         Adresa: [ADRESA E PLOTE]
         """
         
-        terms_para = doc.add_paragraph(terms_text.strip())
-        
-        # Add some space
-        doc.add_paragraph()
+        story.append(Paragraph(terms_text, normal_style))
+        story.append(Spacer(1, 30))
         
         # Signature section
-        signature_para = doc.add_paragraph()
-        signature_para.add_run('Nenshkrimi: _________________________')
-        signature_para.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        story.append(Paragraph("Nenshkrimi: _________________________", right_style))
+        story.append(Paragraph("Data: _________________________", right_style))
         
-        date_signature_para = doc.add_paragraph()
-        date_signature_para.add_run('Data: _________________________')
-        date_signature_para.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-
-    def _convert_docx_to_pdf(self, docx_path):
-        """
-        Convert Word document to PDF using LibreOffice.
-        
-        Args:
-            docx_path (str): Path to the Word document
-            
-        Returns:
-            bytes: PDF content as bytes
-        """
-        try:
-            # Create temporary PDF file
-            with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as temp_pdf:
-                temp_pdf_path = temp_pdf.name
-            
-            # Use LibreOffice to convert DOCX to PDF
-            cmd = [
-                'libreoffice',
-                '--headless',
-                '--convert-to', 'pdf',
-                '--outdir', os.path.dirname(temp_pdf_path),
-                docx_path
-            ]
-            
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-            
-            if result.returncode != 0:
-                _logger.error(f'LibreOffice conversion failed: {result.stderr}')
-                return None
-            
-            # Read the generated PDF
-            pdf_path = os.path.splitext(temp_pdf_path)[0] + '.pdf'
-            if os.path.exists(pdf_path):
-                with open(pdf_path, 'rb') as pdf_file:
-                    pdf_content = pdf_file.read()
-                
-                # Clean up temporary files
-                os.unlink(temp_pdf_path)
-                if pdf_path != temp_pdf_path:
-                    os.unlink(pdf_path)
-                
-                return pdf_content
-            else:
-                _logger.error(f'PDF file not generated: {pdf_path}')
-                return None
-                
-        except subprocess.TimeoutExpired:
-            _logger.error('LibreOffice conversion timed out')
-            return None
-        except Exception as e:
-            _logger.error(f'Error converting DOCX to PDF: {str(e)}')
-            return None
+        return story
 
 
 class WarrantyPdfSettings(models.TransientModel):
