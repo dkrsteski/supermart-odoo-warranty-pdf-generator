@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_invoice_warranty_pdf_generator" model="ir.ui.view">
+        <field name="name">account.move.form.warranty.pdf.generator</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="generate_warranty_pdfs" 
+                        string="Generate Warranty PDFs" 
+                        type="object"
+                        class="btn-secondary"
+                        icon="fa-file-pdf-o"
+                        help="Generate filled garancia.pdf warranty certificates for each product"
+                        attrs="{'invisible': [('move_type', 'not in', ['out_invoice', 'out_refund'])]}"
+                        />
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Settings view for warranty PDF configuration -->
+    <record id="view_warranty_pdf_settings_form" model="ir.ui.view">
+        <field name="name">warranty.pdf.settings.form</field>
+        <field name="model">warranty.pdf.settings</field>
+        <field name="arch" type="xml">
+            <form string="Warranty PDF Settings">
+                <sheet>
+                    <group>
+                        <group string="General Settings">
+                            <field name="default_warranty_period"/>
+                        </group>
+                        <group string="Product Exclusions">
+                            <field name="exclude_product_ids" widget="many2many_tags"/>
+                        </group>
+                    </group>
+                    <group string="Template Settings">
+                        <field name="template_file" filename="template_filename"/>
+                        <field name="template_filename" invisible="1"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="save_settings" string="Save Settings" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action for settings -->
+    <record id="action_warranty_pdf_settings" model="ir.actions.act_window">
+        <field name="name">Warranty PDF Settings</field>
+        <field name="res_model">warranty.pdf.settings</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <!-- Menu item -->
+    <menuitem id="menu_warranty_pdf_settings"
+              name="Warranty PDF Settings"
+              parent="account.menu_finance_configuration"
+              action="action_warranty_pdf_settings"
+              sequence="100"/>
+</odoo>
