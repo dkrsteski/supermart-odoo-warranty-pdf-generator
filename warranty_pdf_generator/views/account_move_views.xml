@@ -12,7 +12,7 @@
                         class="btn-secondary"
                         icon="fa-file-pdf-o"
                         help="Generate filled garancia.pdf warranty certificates for each product"
-                        attrs="{'invisible': [('move_type', 'not in', ['out_invoice', 'out_refund'])]}"
+                        invisible="move_type not in ['out_invoice', 'out_refund']"
                         />
             </xpath>
         </field>
