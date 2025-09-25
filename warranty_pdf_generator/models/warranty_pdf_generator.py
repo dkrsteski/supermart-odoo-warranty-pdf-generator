@@ -6,9 +6,13 @@ import base64
 import os
 
 try:
+    from docx import Document
+    from docx.shared import Inches
     from reportlab.pdfgen import canvas
     from reportlab.lib.pagesizes import A4
     from PyPDF2 import PdfWriter, PdfReader
+    import subprocess
+    import tempfile
 except ImportError as e:
     logging.getLogger(__name__).warning(f"Required libraries not installed: {e}. PDF generation will not work.")
 
@@ -20,10 +24,10 @@ class AccountMoveWarranty(models.Model):
 
     def generate_warranty_pdfs(self):
         """
-        Generate warranty PDFs using the garancia.pdf template and fill in the required fields.
+        Generate warranty PDFs using the garancia.docx template and fill in the required fields.
         
         Business Rules:
-        - Use garancia.pdf template from module directory
+        - Use garancia.docx template from module directory
         - Fill customer name, product brand, warranty period
         - Generate one PDF per product with warranty
         - Exclude product with ID 7884
@@ -95,7 +99,7 @@ class AccountMoveWarranty(models.Model):
 
     def _generate_filled_warranty_pdf(self, products):
         """
-        Generate warranty PDF by filling the garancia.pdf template with product data.
+        Generate warranty PDF by filling the garancia.docx template with product data.
         
         Args:
             products: List of product.product records
@@ -106,7 +110,7 @@ class AccountMoveWarranty(models.Model):
         try:
             # Get the template path from the warranty_pdf_generator module
             module_path = os.path.dirname(os.path.dirname(__file__))
-            template_path = os.path.join(module_path, 'static', 'data', 'garancia.pdf')
+            template_path = os.path.join(module_path, 'garancia.docx')
             
             if not os.path.exists(template_path):
                 _logger.error(f'Template file not found at: {template_path}')
@@ -141,16 +145,15 @@ class AccountMoveWarranty(models.Model):
         Fill warranty template with product-specific data.
         
         Args:
-            template_path (str): Path to garancia.pdf template
+            template_path (str): Path to garancia.docx template
             product: Product record
             
         Returns:
             bytes: Filled PDF content
         """
         try:
-            # Create overlay with form data
-            overlay_buffer = BytesIO()
-            c = canvas.Canvas(overlay_buffer, pagesize=A4)
+            # Load the Word document template
+            doc = Document(template_path)
             
             # Get customer name from invoice partner
             customer_name = self.partner_id.name or "___________________"
@@ -163,53 +166,102 @@ class AccountMoveWarranty(models.Model):
             if not warranty_period or warranty_period == '':
                 warranty_period = '1'
             
-            # Fill form fields based on PDF analysis
-            # Set font and ensure text fits in fields
-            c.setFont("Helvetica", 9)
+            # Fill template placeholders
+            # Common placeholders that might be in the Word template
+            replacements = {
+                '{{customer_name}}': customer_name,
+                '{{product_name}}': product_name,
+                '{{product_brand}}': product_name,
+                '{{warranty_period}}': warranty_period,
+                '{{invoice_number}}': self.name or '',
+                '{{invoice_date}}': self.invoice_date.strftime('%d/%m/%Y') if self.invoice_date else '',
+                '{{partner_name}}': customer_name,
+                '{{product_id}}': str(product.id),
+            }
             
-            # Customer name field (Emer Mbiemer) - position after the colon
-            c.drawString(155, 162, customer_name[:30])  # Limit length to fit field
+            # Replace text in paragraphs
+            for paragraph in doc.paragraphs:
+                for placeholder, value in replacements.items():
+                    if placeholder in paragraph.text:
+                        paragraph.text = paragraph.text.replace(placeholder, value)
             
-            # Product brand field (Marka) - position after the colon  
-            c.drawString(110, 194, product_name[:25])  # Limit length to fit field
+            # Replace text in tables
+            for table in doc.tables:
+                for row in table.rows:
+                    for cell in row.cells:
+                        for paragraph in cell.paragraphs:
+                            for placeholder, value in replacements.items():
+                                if placeholder in paragraph.text:
+                                    paragraph.text = paragraph.text.replace(placeholder, value)
             
-            # Warranty period field (Afati Garancise) - position before "Muaj"
-            c.drawString(155, 225, warranty_period)  # Warranty period before "Muaj"
+            # Save filled document to temporary file
+            with tempfile.NamedTemporaryFile(suffix='.docx', delete=False) as temp_docx:
+                doc.save(temp_docx.name)
+                temp_docx_path = temp_docx.name
             
-            c.save()
-            overlay_buffer.seek(0)
+            # Convert Word document to PDF
+            pdf_content = self._convert_docx_to_pdf(temp_docx_path)
             
-            # Read template and overlay
-            template_reader = PdfReader(template_path)
-            overlay_reader = PdfReader(overlay_buffer)
+            # Clean up temporary file
+            os.unlink(temp_docx_path)
             
-            # Create output buffer
-            output_buffer = BytesIO()
-            output_writer = PdfWriter()
-            
-            # Merge overlay with template pages
-            for page_num in range(len(template_reader.pages)):
-                page = template_reader.pages[page_num]
-                
-                # Apply overlay to second page (page 1, 0-indexed) where form fields are
-                if page_num == 1 and len(overlay_reader.pages) > 0:
-                    overlay_page = overlay_reader.pages[0]
-                    page.merge_page(overlay_page)
-                
-                output_writer.add_page(page)
-            
-            # Write to buffer
-            output_writer.write(output_buffer)
-            output_content = output_buffer.getvalue()
-            
-            # Cleanup
-            overlay_buffer.close()
-            output_buffer.close()
-            
-            return output_content
+            return pdf_content
             
         except Exception as e:
             _logger.error(f'Error filling warranty template for product {product.id}: {str(e)}')
+            return None
+
+    def _convert_docx_to_pdf(self, docx_path):
+        """
+        Convert Word document to PDF using LibreOffice.
+        
+        Args:
+            docx_path (str): Path to the Word document
+            
+        Returns:
+            bytes: PDF content as bytes
+        """
+        try:
+            # Create temporary PDF file
+            with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as temp_pdf:
+                temp_pdf_path = temp_pdf.name
+            
+            # Use LibreOffice to convert DOCX to PDF
+            cmd = [
+                'libreoffice',
+                '--headless',
+                '--convert-to', 'pdf',
+                '--outdir', os.path.dirname(temp_pdf_path),
+                docx_path
+            ]
+            
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+            
+            if result.returncode != 0:
+                _logger.error(f'LibreOffice conversion failed: {result.stderr}')
+                return None
+            
+            # Read the generated PDF
+            pdf_path = os.path.splitext(temp_pdf_path)[0] + '.pdf'
+            if os.path.exists(pdf_path):
+                with open(pdf_path, 'rb') as pdf_file:
+                    pdf_content = pdf_file.read()
+                
+                # Clean up temporary files
+                os.unlink(temp_pdf_path)
+                if pdf_path != temp_pdf_path:
+                    os.unlink(pdf_path)
+                
+                return pdf_content
+            else:
+                _logger.error(f'PDF file not generated: {pdf_path}')
+                return None
+                
+        except subprocess.TimeoutExpired:
+            _logger.error('LibreOffice conversion timed out')
+            return None
+        except Exception as e:
+            _logger.error(f'Error converting DOCX to PDF: {str(e)}')
             return None
 
 
@@ -231,7 +283,7 @@ class WarrantyPdfSettings(models.TransientModel):
     
     template_file = fields.Binary(
         string='Template File',
-        help='Upload custom warranty template PDF'
+        help='Upload custom warranty template Word document'
     )
     
     template_filename = fields.Char(
