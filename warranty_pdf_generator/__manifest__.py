@@ -2,13 +2,12 @@
     'name': 'Warranty PDF Generator',
     'version': '1.0.0',
     'category': 'Sales',
-    'summary': 'Generate warranty certificates using Word document templates',
+    'summary': 'Generate warranty certificates programmatically',
     'description': """
         This module provides warranty certificate generation functionality:
-        - Uses Word document templates for warranty certificates
+        - Creates Word documents programmatically (no external template files)
         - Fills customer, product, and warranty information automatically
-        - Supports the garancia.docx template format
-        - Converts filled Word documents to PDF
+        - Converts generated Word documents to PDF
         - Integrates with invoice and product management
         - Generates professional warranty documents
     """,

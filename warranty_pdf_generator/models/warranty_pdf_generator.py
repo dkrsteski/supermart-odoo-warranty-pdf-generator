@@ -24,10 +24,10 @@ class AccountMoveWarranty(models.Model):
 
     def generate_warranty_pdfs(self):
         """
-        Generate warranty PDFs using the garancia.docx template and fill in the required fields.
+        Generate warranty PDFs by creating Word documents programmatically with required fields.
         
         Business Rules:
-        - Use garancia.docx template from module directory
+        - Create Word documents programmatically (no external template files)
         - Fill customer name, product brand, warranty period
         - Generate one PDF per product with warranty
         - Exclude product with ID 7884
@@ -99,7 +99,7 @@ class AccountMoveWarranty(models.Model):
 
     def _generate_filled_warranty_pdf(self, products):
         """
-        Generate warranty PDF by filling the garancia.docx template with product data.
+        Generate warranty PDF by creating Word documents with product data.
         
         Args:
             products: List of product.product records
@@ -108,20 +108,12 @@ class AccountMoveWarranty(models.Model):
             bytes: PDF content as bytes
         """
         try:
-            # Get the template path from the warranty_pdf_generator module
-            module_path = os.path.dirname(os.path.dirname(__file__))
-            template_path = os.path.join(module_path, 'garancia.docx')
-            
-            if not os.path.exists(template_path):
-                _logger.error(f'Template file not found at: {template_path}')
-                return None
-            
             # Create a new PDF writer for the final output
             output_pdf = PdfWriter()
             
             # Process each product
             for product in products:
-                filled_pdf = self._fill_warranty_template(template_path, product)
+                filled_pdf = self._create_warranty_document(product)
                 if filled_pdf:
                     # Add the filled page to output
                     reader = PdfReader(BytesIO(filled_pdf))
@@ -140,20 +132,19 @@ class AccountMoveWarranty(models.Model):
             _logger.error(f'Error generating filled warranty PDF: {str(e)}')
             return None
 
-    def _fill_warranty_template(self, template_path, product):
+    def _create_warranty_document(self, product):
         """
-        Fill warranty template with product-specific data.
+        Create warranty document with product-specific data.
         
         Args:
-            template_path (str): Path to garancia.docx template
             product: Product record
             
         Returns:
             bytes: Filled PDF content
         """
         try:
-            # Load the Word document template
-            doc = Document(template_path)
+            # Create a new Word document
+            doc = Document()
             
             # Get customer name from invoice partner
             customer_name = self.partner_id.name or "___________________"
@@ -166,35 +157,14 @@ class AccountMoveWarranty(models.Model):
             if not warranty_period or warranty_period == '':
                 warranty_period = '1'
             
-            # Fill template placeholders
-            # Common placeholders that might be in the Word template
-            replacements = {
-                '{{customer_name}}': customer_name,
-                '{{product_name}}': product_name,
-                '{{product_brand}}': product_name,
-                '{{warranty_period}}': warranty_period,
-                '{{invoice_number}}': self.name or '',
-                '{{invoice_date}}': self.invoice_date.strftime('%d/%m/%Y') if self.invoice_date else '',
-                '{{partner_name}}': customer_name,
-                '{{product_id}}': str(product.id),
-            }
+            # Get invoice information
+            invoice_number = self.name or ''
+            invoice_date = self.invoice_date.strftime('%d/%m/%Y') if self.invoice_date else ''
             
-            # Replace text in paragraphs
-            for paragraph in doc.paragraphs:
-                for placeholder, value in replacements.items():
-                    if placeholder in paragraph.text:
-                        paragraph.text = paragraph.text.replace(placeholder, value)
+            # Create warranty certificate content
+            self._add_warranty_content(doc, customer_name, product_name, warranty_period, invoice_number, invoice_date)
             
-            # Replace text in tables
-            for table in doc.tables:
-                for row in table.rows:
-                    for cell in row.cells:
-                        for paragraph in cell.paragraphs:
-                            for placeholder, value in replacements.items():
-                                if placeholder in paragraph.text:
-                                    paragraph.text = paragraph.text.replace(placeholder, value)
-            
-            # Save filled document to temporary file
+            # Save document to temporary file
             with tempfile.NamedTemporaryFile(suffix='.docx', delete=False) as temp_docx:
                 doc.save(temp_docx.name)
                 temp_docx_path = temp_docx.name
@@ -208,8 +178,89 @@ class AccountMoveWarranty(models.Model):
             return pdf_content
             
         except Exception as e:
-            _logger.error(f'Error filling warranty template for product {product.id}: {str(e)}')
+            _logger.error(f'Error creating warranty document for product {product.id}: {str(e)}')
             return None
+
+    def _add_warranty_content(self, doc, customer_name, product_name, warranty_period, invoice_number, invoice_date):
+        """
+        Add warranty certificate content to the document.
+        
+        Args:
+            doc: Word document object
+            customer_name (str): Customer name
+            product_name (str): Product name
+            warranty_period (str): Warranty period in months
+            invoice_number (str): Invoice number
+            invoice_date (str): Invoice date
+        """
+        from docx.shared import Inches, Pt
+        from docx.enum.text import WD_ALIGN_PARAGRAPH
+        from docx.enum.table import WD_TABLE_ALIGNMENT
+        
+        # Title
+        title = doc.add_heading('GARANCIA', 0)
+        title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        
+        # Add some space
+        doc.add_paragraph()
+        
+        # Customer information section
+        customer_para = doc.add_paragraph()
+        customer_para.add_run('Emer Mbiemer: ').bold = True
+        customer_para.add_run(customer_name)
+        
+        # Product information section
+        product_para = doc.add_paragraph()
+        product_para.add_run('Marka: ').bold = True
+        product_para.add_run(product_name)
+        
+        # Warranty period section
+        warranty_para = doc.add_paragraph()
+        warranty_para.add_run('Afati Garancise: ').bold = True
+        warranty_para.add_run(f'{warranty_period} Muaj')
+        
+        # Invoice information section
+        invoice_para = doc.add_paragraph()
+        invoice_para.add_run('Numri i Fatures: ').bold = True
+        invoice_para.add_run(invoice_number)
+        
+        date_para = doc.add_paragraph()
+        date_para.add_run('Data e Fatures: ').bold = True
+        date_para.add_run(invoice_date)
+        
+        # Add some space
+        doc.add_paragraph()
+        
+        # Warranty terms section
+        terms_heading = doc.add_heading('Kushtet e Garancise', level=2)
+        
+        terms_text = """
+        Kjo garancia mbulon defekte ne material dhe punim te produktit.
+        Garancia nuk mbulon:
+        - Demet e shkaktuara nga perdorimi gabim
+        - Demet e shkaktuara nga aksidentet
+        - Demet e shkaktuara nga modifikimet e produktit
+        - Konsumimin normal te produktit
+        
+        Per te aktivizuar garancine, kontaktoni:
+        Telefon: [NUMRI I TELEFONIT]
+        Email: [EMAIL ADRESA]
+        Adresa: [ADRESA E PLOTE]
+        """
+        
+        terms_para = doc.add_paragraph(terms_text.strip())
+        
+        # Add some space
+        doc.add_paragraph()
+        
+        # Signature section
+        signature_para = doc.add_paragraph()
+        signature_para.add_run('Nenshkrimi: _________________________')
+        signature_para.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        
+        date_signature_para = doc.add_paragraph()
+        date_signature_para.add_run('Data: _________________________')
+        date_signature_para.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
     def _convert_docx_to_pdf(self, docx_path):
         """
