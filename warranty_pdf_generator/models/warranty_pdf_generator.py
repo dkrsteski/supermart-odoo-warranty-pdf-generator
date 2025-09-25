@@ -8,11 +8,9 @@ import os
 try:
     from reportlab.pdfgen import canvas
     from reportlab.lib.pagesizes import A4
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-    from reportlab.lib.units import inch
-    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
     from PyPDF2 import PdfWriter, PdfReader
+    import subprocess
+    import tempfile
 except ImportError as e:
     logging.getLogger(__name__).warning(f"Required libraries not installed: {e}. PDF generation will not work.")
 
@@ -24,10 +22,11 @@ class AccountMoveWarranty(models.Model):
 
     def generate_warranty_pdfs(self):
         """
-        Generate warranty PDFs directly using reportlab with required fields.
+        Generate warranty PDFs using the garancia.docx template with exact formatting.
         
         Business Rules:
-        - Create PDF documents directly using reportlab (no external dependencies)
+        - Use garancia.docx template from module directory
+        - Convert to PDF using LibreOffice to preserve exact formatting
         - Fill customer name, product brand, warranty period
         - Generate one PDF per product with warranty
         - Exclude product with ID 7884
@@ -99,7 +98,7 @@ class AccountMoveWarranty(models.Model):
 
     def _generate_filled_warranty_pdf(self, products):
         """
-        Generate warranty PDF directly using reportlab with product data.
+        Generate warranty PDF using the garancia.docx template with exact formatting.
         
         Args:
             products: List of product.product records
@@ -108,12 +107,20 @@ class AccountMoveWarranty(models.Model):
             bytes: PDF content as bytes
         """
         try:
+            # Get the template path from the warranty_pdf_generator module
+            module_path = os.path.dirname(os.path.dirname(__file__))
+            template_path = os.path.join(module_path, 'garancia.docx')
+            
+            if not os.path.exists(template_path):
+                _logger.error(f'Template file not found at: {template_path}')
+                return None
+            
             # Create a new PDF writer for the final output
             output_pdf = PdfWriter()
             
             # Process each product
             for product in products:
-                filled_pdf = self._create_warranty_pdf(product)
+                filled_pdf = self._fill_warranty_template(template_path, product)
                 if filled_pdf:
                     # Add the filled page to output
                     reader = PdfReader(BytesIO(filled_pdf))
@@ -132,24 +139,22 @@ class AccountMoveWarranty(models.Model):
             _logger.error(f'Error generating filled warranty PDF: {str(e)}')
             return None
 
-    def _create_warranty_pdf(self, product):
+    def _fill_warranty_template(self, template_path, product):
         """
-        Create warranty PDF directly using reportlab with product-specific data.
+        Fill warranty template with product-specific data using exact formatting from DOCX.
         
         Args:
+            template_path (str): Path to garancia.docx template
             product: Product record
             
         Returns:
-            bytes: PDF content as bytes
+            bytes: Filled PDF content
         """
         try:
-            # Create buffer for PDF content
-            buffer = BytesIO()
-            
-            # Create PDF document
-            doc = SimpleDocTemplate(buffer, pagesize=A4, 
-                                  rightMargin=72, leftMargin=72, 
-                                  topMargin=72, bottomMargin=18)
+            # First, convert the DOCX template to PDF using LibreOffice
+            pdf_template_path = self._convert_docx_to_pdf_template(template_path)
+            if not pdf_template_path:
+                return None
             
             # Get customer name from invoice partner
             customer_name = self.partner_id.name or "___________________"
@@ -166,131 +171,111 @@ class AccountMoveWarranty(models.Model):
             invoice_number = self.name or ''
             invoice_date = self.invoice_date.strftime('%d/%m/%Y') if self.invoice_date else ''
             
-            # Create warranty certificate content
-            story = self._create_warranty_content(customer_name, product_name, warranty_period, invoice_number, invoice_date)
+            # Create overlay with form data
+            overlay_buffer = BytesIO()
+            c = canvas.Canvas(overlay_buffer, pagesize=A4)
             
-            # Build PDF
-            doc.build(story)
+            # Fill form fields - these positions may need adjustment based on your template
+            # You'll need to inspect the converted PDF to get exact coordinates
+            c.setFont("Helvetica", 9)
             
-            # Get PDF content
-            pdf_content = buffer.getvalue()
-            buffer.close()
+            # Customer name field (Emer Mbiemer) - adjust coordinates as needed
+            c.drawString(155, 162, customer_name[:30])  # Limit length to fit field
             
-            return pdf_content
+            # Product brand field (Marka) - adjust coordinates as needed
+            c.drawString(110, 194, product_name[:25])  # Limit length to fit field
+            
+            # Warranty period field (Afati Garancise) - adjust coordinates as needed
+            c.drawString(155, 225, warranty_period)  # Warranty period before "Muaj"
+            
+            # Invoice number - adjust coordinates as needed
+            c.drawString(155, 256, invoice_number[:20])
+            
+            # Invoice date - adjust coordinates as needed
+            c.drawString(155, 287, invoice_date)
+            
+            c.save()
+            overlay_buffer.seek(0)
+            
+            # Read template and overlay
+            template_reader = PdfReader(pdf_template_path)
+            overlay_reader = PdfReader(overlay_buffer)
+            
+            # Create output buffer
+            output_buffer = BytesIO()
+            output_writer = PdfWriter()
+            
+            # Merge overlay with template pages
+            for page_num in range(len(template_reader.pages)):
+                page = template_reader.pages[page_num]
+                
+                # Apply overlay to the page where form fields are
+                # You may need to adjust this based on which page has the form fields
+                if page_num == 0 and len(overlay_reader.pages) > 0:
+                    overlay_page = overlay_reader.pages[0]
+                    page.merge_page(overlay_page)
+                
+                output_writer.add_page(page)
+            
+            # Write to buffer
+            output_writer.write(output_buffer)
+            output_content = output_buffer.getvalue()
+            
+            # Cleanup
+            overlay_buffer.close()
+            output_buffer.close()
+            os.unlink(pdf_template_path)  # Clean up temporary PDF template
+            
+            return output_content
             
         except Exception as e:
-            _logger.error(f'Error creating warranty PDF for product {product.id}: {str(e)}')
+            _logger.error(f'Error filling warranty template for product {product.id}: {str(e)}')
             return None
 
-    def _create_warranty_content(self, customer_name, product_name, warranty_period, invoice_number, invoice_date):
+    def _convert_docx_to_pdf_template(self, docx_path):
         """
-        Create warranty certificate content for PDF.
+        Convert Word document template to PDF using LibreOffice.
         
         Args:
-            customer_name (str): Customer name
-            product_name (str): Product name
-            warranty_period (str): Warranty period in months
-            invoice_number (str): Invoice number
-            invoice_date (str): Invoice date
+            docx_path (str): Path to the Word document template
             
         Returns:
-            list: Story elements for PDF
+            str: Path to the converted PDF template, or None if failed
         """
-        # Get styles
-        styles = getSampleStyleSheet()
-        
-        # Create custom styles
-        title_style = ParagraphStyle(
-            'CustomTitle',
-            parent=styles['Heading1'],
-            fontSize=24,
-            spaceAfter=30,
-            alignment=TA_CENTER,
-            fontName='Helvetica-Bold'
-        )
-        
-        heading_style = ParagraphStyle(
-            'CustomHeading',
-            parent=styles['Heading2'],
-            fontSize=16,
-            spaceAfter=12,
-            fontName='Helvetica-Bold'
-        )
-        
-        normal_style = ParagraphStyle(
-            'CustomNormal',
-            parent=styles['Normal'],
-            fontSize=12,
-            spaceAfter=6,
-            fontName='Helvetica'
-        )
-        
-        bold_style = ParagraphStyle(
-            'CustomBold',
-            parent=styles['Normal'],
-            fontSize=12,
-            spaceAfter=6,
-            fontName='Helvetica-Bold'
-        )
-        
-        right_style = ParagraphStyle(
-            'CustomRight',
-            parent=styles['Normal'],
-            fontSize=12,
-            spaceAfter=6,
-            fontName='Helvetica',
-            alignment=TA_RIGHT
-        )
-        
-        # Build story
-        story = []
-        
-        # Title
-        story.append(Paragraph("GARANCIA", title_style))
-        story.append(Spacer(1, 20))
-        
-        # Customer information
-        story.append(Paragraph(f"<b>Emer Mbiemer:</b> {customer_name}", normal_style))
-        story.append(Spacer(1, 10))
-        
-        # Product information
-        story.append(Paragraph(f"<b>Marka:</b> {product_name}", normal_style))
-        story.append(Spacer(1, 10))
-        
-        # Warranty period
-        story.append(Paragraph(f"<b>Afati Garancise:</b> {warranty_period} Muaj", normal_style))
-        story.append(Spacer(1, 10))
-        
-        # Invoice information
-        story.append(Paragraph(f"<b>Numri i Fatures:</b> {invoice_number}", normal_style))
-        story.append(Paragraph(f"<b>Data e Fatures:</b> {invoice_date}", normal_style))
-        story.append(Spacer(1, 20))
-        
-        # Warranty terms
-        story.append(Paragraph("Kushtet e Garancise", heading_style))
-        
-        terms_text = """
-        Kjo garancia mbulon defekte ne material dhe punim te produktit.<br/>
-        Garancia nuk mbulon:<br/>
-        • Demet e shkaktuara nga perdorimi gabim<br/>
-        • Demet e shkaktuara nga aksidentet<br/>
-        • Demet e shkaktuara nga modifikimet e produktit<br/>
-        • Konsumimin normal te produktit<br/><br/>
-        
-        Per te aktivizuar garancine, kontaktoni:<br/>
-        Telefon: [NUMRI I TELEFONIT]<br/>
-        Email: [EMAIL ADRESA]<br/>
-        Adresa: [ADRESA E PLOTE]
-        """
-        
-        story.append(Paragraph(terms_text, normal_style))
-        story.append(Spacer(1, 30))
-        
-        # Signature section
-        story.append(Paragraph("Nenshkrimi: _________________________", right_style))
-        story.append(Paragraph("Data: _________________________", right_style))
-        
-        return story
+        try:
+            # Create temporary PDF file
+            with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as temp_pdf:
+                temp_pdf_path = temp_pdf.name
+            
+            # Use LibreOffice to convert DOCX to PDF
+            cmd = [
+                'libreoffice',
+                '--headless',
+                '--convert-to', 'pdf',
+                '--outdir', os.path.dirname(temp_pdf_path),
+                docx_path
+            ]
+            
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+            
+            if result.returncode != 0:
+                _logger.error(f'LibreOffice conversion failed: {result.stderr}')
+                return None
+            
+            # Return the path to the generated PDF
+            pdf_path = os.path.splitext(temp_pdf_path)[0] + '.pdf'
+            if os.path.exists(pdf_path):
+                return pdf_path
+            else:
+                _logger.error(f'PDF template not generated: {pdf_path}')
+                return None
+                
+        except subprocess.TimeoutExpired:
+            _logger.error('LibreOffice conversion timed out')
+            return None
+        except Exception as e:
+            _logger.error(f'Error converting DOCX template to PDF: {str(e)}')
+            return None
 
 
 class WarrantyPdfSettings(models.TransientModel):
