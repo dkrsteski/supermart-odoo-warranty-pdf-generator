@@ -191,8 +191,8 @@ class AccountMoveWarranty(models.Model):
             
             # Create PDF document with narrow margins
             doc = SimpleDocTemplate(buffer, pagesize=A4, 
-                                  rightMargin=36, leftMargin=36, 
-                                  topMargin=36, bottomMargin=36)
+                                  rightMargin=18, leftMargin=18, 
+                                  topMargin=18, bottomMargin=18)
             
             # Get customer name from invoice partner
             customer_name = self.partner_id.name or "___________________"
@@ -637,28 +637,30 @@ class AccountMoveWarranty(models.Model):
             # Create the left side content with form fields in a single row
             left_content = []
             
-            # Create a table with three columns for Emer Mbiemer, Marka, and Afati
+            # Create a table with three rows for Emer Mbiemer, Marka, and Afati
             form_data = [
                 [
                     Paragraph("Emer Mbiemer:", form_label_style),
-                    Paragraph("Marka:", form_label_style),
-                    Paragraph("Afati Garancise:", form_label_style)
-                ],
-                [
                     Paragraph(customer_name, ParagraphStyle(
                         'Value',
                         fontSize=8,
                         fontName='Helvetica',
                         textColor=black,
                         spaceAfter=2
-                    )),
+                    ))
+                ],
+                [
+                    Paragraph("Marka:", form_label_style),
                     Paragraph(product_name, ParagraphStyle(
                         'Value',
                         fontSize=8,
                         fontName='Helvetica',
                         textColor=black,
                         spaceAfter=2
-                    )),
+                    ))
+                ],
+                [
+                    Paragraph("Afati Garancise:", form_label_style),
                     Paragraph(f"{warranty_period} Muaj", ParagraphStyle(
                         'Value',
                         fontSize=8,
@@ -669,7 +671,7 @@ class AccountMoveWarranty(models.Model):
                 ]
             ]
             
-            form_table = Table(form_data, colWidths=[1.0*inch, 1.0*inch, 0.9*inch])
+            form_table = Table(form_data, colWidths=[1.0*inch, 1.5*inch])
             form_table.setStyle(TableStyle([
                 ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
                 ('VALIGN', (0, 0), (-1, -1), 'TOP'),
