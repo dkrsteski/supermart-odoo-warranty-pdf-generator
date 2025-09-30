@@ -9,6 +9,8 @@ try:
     from reportlab.pdfgen import canvas
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.pdfbase.ttfonts import TTFont
+    from reportlab.pdfbase import pdfmetrics
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle, ListFlowable, ListItem
     from reportlab.lib.units import inch
     from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
@@ -16,6 +18,9 @@ try:
     from PyPDF2 import PdfWriter, PdfReader
     import subprocess
     import tempfile
+
+    pdfmetrics.registerFont(TTFont('DejaVuSerif', '/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf'))
+
 except ImportError as e:
     logging.getLogger(__name__).warning(f"Required libraries not installed: {e}. PDF generation will not work.")
 
@@ -631,7 +636,7 @@ class AccountMoveWarranty(models.Model):
                 'FormLabel',
                 parent=getSampleStyleSheet()['Normal'],
                 fontSize=8,
-                fontName='Times-Roman',
+                fontName='DejaVuSerif',
                 textColor=black,
                 spaceAfter=1
             )
@@ -651,7 +656,7 @@ class AccountMoveWarranty(models.Model):
                     Paragraph(safe_customer_name, ParagraphStyle(
                         'Value',
                         fontSize=8,
-                        fontName='Times-Roman',
+                        fontName='DejaVuSerif',
                         textColor=black,
                         spaceAfter=2
                     ))
@@ -661,7 +666,7 @@ class AccountMoveWarranty(models.Model):
                     Paragraph(safe_product_name, ParagraphStyle(
                         'Value',
                         fontSize=8,
-                        fontName='Times-Roman',
+                        fontName='DejaVuSerif',
                         textColor=black,
                         spaceAfter=2
                     ))
@@ -671,7 +676,7 @@ class AccountMoveWarranty(models.Model):
                     Paragraph(f"{safe_warranty_period} Muaj", ParagraphStyle(
                         'Value',
                         fontSize=8,
-                        fontName='Times-Roman',
+                        fontName='DejaVuSerif',
                         textColor=black,
                         spaceAfter=2
                     ))
