@@ -9,7 +9,7 @@ try:
     from reportlab.pdfgen import canvas
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle, ListFlowable, ListItem
     from reportlab.lib.units import inch
     from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
     from reportlab.lib.colors import black, blue, orange
@@ -390,17 +390,12 @@ class AccountMoveWarranty(models.Model):
             "Servisi në shtëpi mund të ofrohet vetëm kundrejt pagesës, në të kundërt klienti detyrohet të dorëzojë produktin për servis në njërën nga pikat e \"Supermart\"."
         ]
 
-        story.append(
-        ListFlowable(
-            [ListItem(Paragraph(term, terms_style), leftIndent=4) for term in warranty_terms],
-            bulletType='bullet',
-            bulletFontName='Helvetica',
-            bulletFontSize=6,
-            bulletDedent=4,
-            bulletOffsetY=0,
-        )
-)
         
+        
+        # Create list items for warranty terms
+        list_items = [ListItem(Paragraph(term, terms_style)) for term in warranty_terms]
+        warranty_list = ListFlowable(list_items, bulletType='bullet', start='bullet')
+        story.append(warranty_list)
                 
         # Add warranty exclusions and additional terms
         exclusions_terms = [
@@ -426,16 +421,12 @@ class AccountMoveWarranty(models.Model):
             "Në rastet kur janë shkelur rregullat e lartpërmendura dhe shërbimi i ofruar ose servisi e autorizuar nga \"Supermart\" duhet të faturohet, por klienti refuzon të paguaj detyrimin ndaj kompanisë atëherë garancia për produktin në fjalë do të bëhet e pavlefshme dhe kjo çështje do ti kalojë departamentit juridik për hapa të mëtejshëm sipas legjislacionit në fuqi të RSH."
         ]
         
-        story.append(
-        ListFlowable(
-            [ListItem(Paragraph(term, terms_style), leftIndent=4) for term in exclusions_terms],
-            bulletType='bullet',
-            bulletFontName='Helvetica',
-            bulletFontSize=6,
-            bulletDedent=4,
-            bulletOffsetY=0,
-        )
-)
+        # Create list items for exclusions terms
+        exclusions_list_items = [ListItem(Paragraph(term, terms_style)) for term in exclusions_terms]
+        exclusions_list = ListFlowable(exclusions_list_items, bulletType='bullet', start='bullet')
+        story.append(exclusions_list)
+        
+        
         # Signature section (three columns)
         story.extend(self._create_signature_section())
         
