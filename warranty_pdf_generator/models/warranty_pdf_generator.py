@@ -189,10 +189,10 @@ class AccountMoveWarranty(models.Model):
             # Create buffer for PDF content
             buffer = BytesIO()
             
-            # Create PDF document with proper margins
+            # Create PDF document with narrow margins
             doc = SimpleDocTemplate(buffer, pagesize=A4, 
-                                  rightMargin=72, leftMargin=72, 
-                                  topMargin=72, bottomMargin=72)
+                                  rightMargin=36, leftMargin=36, 
+                                  topMargin=36, bottomMargin=36)
             
             # Get customer name from invoice partner
             customer_name = self.partner_id.name or "___________________"
@@ -337,7 +337,7 @@ class AccountMoveWarranty(models.Model):
             fontSize=7,
             fontName='Helvetica-Oblique',
             textColor=black,
-            spaceAfter=20,
+            spaceAfter=5,
             alignment=TA_LEFT
         )
         
@@ -370,7 +370,7 @@ class AccountMoveWarranty(models.Model):
             fontSize=7,
             fontName='Helvetica',
             textColor=black,
-            spaceAfter=3,
+            spaceAfter=1,
             alignment=TA_LEFT,
             leftIndent=10,
             bulletIndent=5
@@ -394,7 +394,7 @@ class AccountMoveWarranty(models.Model):
         for term in warranty_terms:
             story.append(Paragraph(f"• {term}", terms_style))
         
-        story.append(Spacer(1, 10))
+        story.append(Spacer(1, 5))
         
         # Add warranty exclusions and additional terms
         exclusions_terms = [
@@ -462,7 +462,7 @@ class AccountMoveWarranty(models.Model):
         )
         
         # Underline as a long line
-        underline_para = Paragraph("_" * 70, ParagraphStyle('UnderlineLine', fontSize=10, alignment=TA_CENTER, spaceAfter=6))
+        underline_para = Paragraph("_" * 30, ParagraphStyle('UnderlineLine', fontSize=7, alignment=TA_CENTER, spaceAfter=6))
         
         # Build columns
         col1 = [underline_para, Paragraph("Bleresi", label_style), Paragraph("(emer,mbiemer dhe nenshkirmi)", sub_label_style)]
@@ -547,7 +547,7 @@ class AccountMoveWarranty(models.Model):
             # Check if logo exists
             if os.path.exists(logo_path):
                 # Create logo image
-                logo = Image(logo_path, width=2*inch, height=1.5*inch)
+                logo = Image(logo_path, width=2*inch, height=1*inch)
             else:
                 # Create a placeholder if logo doesn't exist
                 logo = Paragraph("LOGO", ParagraphStyle(
@@ -574,7 +574,7 @@ class AccountMoveWarranty(models.Model):
                 ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                 ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
                 ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
-                ('FONTSIZE', (0, 0), (-1, -1), 12),
+                ('FONTSIZE', (0, 0), (-1, -1), 9),
                 ('TEXTCOLOR', (0, 0), (0, -1), orange),
                 ('TEXTCOLOR', (1, 0), (1, -1), black),
                 ('LEFTPADDING', (0, 0), (-1, -1), 0),
@@ -632,7 +632,7 @@ class AccountMoveWarranty(models.Model):
                 fontSize=9,
                 fontName='Helvetica',
                 textColor=black,
-                spaceAfter=5
+                spaceAfter=2
             )
             
             # Create the left side content with form fields
@@ -640,28 +640,28 @@ class AccountMoveWarranty(models.Model):
             
             # Emer Mbiemer field
             left_content.append(Paragraph("Emer Mbiemer:", form_label_style))
-            left_content.append(Paragraph("_" * 50, ParagraphStyle(
-                'Underline',
+            left_content.append(Paragraph(customer_name, ParagraphStyle(
+                'Value',
                 fontSize=9,
                 fontName='Helvetica',
                 textColor=black,
-                spaceAfter=15
+                spaceAfter=5
             )))
             
             # Marka field
             left_content.append(Paragraph("Marka:", form_label_style))
-            left_content.append(Paragraph("_" * 30, ParagraphStyle(
-                'Underline',
+            left_content.append(Paragraph(product_name, ParagraphStyle(
+                'Value',
                 fontSize=9,
                 fontName='Helvetica',
                 textColor=black,
-                spaceAfter=15
+                spaceAfter=5
             )))
             
             # Afati Garancise field
             left_content.append(Paragraph("Afati Garancise:", form_label_style))
-            left_content.append(Paragraph("_" * 15 + " Muaj", ParagraphStyle(
-                'Underline',
+            left_content.append(Paragraph(f"{warranty_period} Muaj", ParagraphStyle(
+                'Value',
                 fontSize=9,
                 fontName='Helvetica',
                 textColor=black,
