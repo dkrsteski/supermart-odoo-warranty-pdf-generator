@@ -364,7 +364,7 @@ class AccountMoveWarranty(models.Model):
         terms_style = ParagraphStyle(
             'WarrantyTerms',
             parent=styles['Normal'],
-            fontSize=6,
+            fontSize=7,
             fontName='Helvetica',
             textColor=black,
             spaceAfter=0,
