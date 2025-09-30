@@ -9,10 +9,10 @@ try:
     from reportlab.pdfgen import canvas
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
     from reportlab.lib.units import inch
     from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
-    from reportlab.lib.colors import black, blue
+    from reportlab.lib.colors import black, blue, orange
     from PyPDF2 import PdfWriter, PdfReader
     import subprocess
     import tempfile
@@ -300,62 +300,420 @@ class AccountMoveWarranty(models.Model):
             alignment=TA_RIGHT
         )
         
+        # Contact info styles
+        contact_label_style = ParagraphStyle(
+            'ContactLabel',
+            parent=styles['Normal'],
+            fontSize=12,
+            fontName='Helvetica-Bold',
+            textColor=orange,
+            spaceAfter=5
+        )
+        
+        contact_value_style = ParagraphStyle(
+            'ContactValue',
+            parent=styles['Normal'],
+            fontSize=12,
+            fontName='Helvetica',
+            textColor=black,
+            spaceAfter=5
+        )
+        
         # Build story
         story = []
         
-        # Title
-        story.append(Paragraph("GARANCIA", title_style))
-        story.append(Paragraph("Certifikata e Garancise", subtitle_style))
-        story.append(Spacer(1, 30))
+        # Header section with logo and contact info
+        story.extend(self._create_header_section())
+        story.append(Spacer(1, 20))
         
-        # Customer information
-        story.append(Paragraph("Emer Mbiemer:", field_style))
-        story.append(Paragraph(customer_name, value_style))
-        story.append(Spacer(1, 10))
+        # Customer and product information section with FLETË GARANCIE box
+        story.extend(self._create_customer_product_section(customer_name, product_name, warranty_period))
+        story.append(Spacer(1, 20))
         
-        # Product information
-        story.append(Paragraph("Marka/Produkti:", field_style))
-        story.append(Paragraph(product_name, value_style))
-        story.append(Spacer(1, 10))
+        # Add italic disclaimer text
+        disclaimer_style = ParagraphStyle(
+            'Disclaimer',
+            parent=styles['Normal'],
+            fontSize=7,
+            fontName='Helvetica-Oblique',
+            textColor=black,
+            spaceAfter=20,
+            alignment=TA_LEFT
+        )
         
-        # Warranty period
-        story.append(Paragraph("Afati i Garancise:", field_style))
-        story.append(Paragraph(f"{warranty_period} Muaj", value_style))
-        story.append(Spacer(1, 10))
-        
-        # Invoice information
-        story.append(Paragraph("Numri i Fatures:", field_style))
-        story.append(Paragraph(invoice_number, value_style))
-        story.append(Spacer(1, 10))
-        
-        story.append(Paragraph("Data e Fatures:", field_style))
-        story.append(Paragraph(invoice_date, value_style))
-        story.append(Spacer(1, 30))
-        
-        # Warranty terms
-        story.append(Paragraph("Kushtet e Garancise", field_style))
-        story.append(Spacer(1, 10))
-        
-        terms_text = """
-        Kjo garancia mbulon defekte ne material dhe punim te produktit.<br/>
-        Garancia nuk mbulon:<br/>
-        • Demet e shkaktuara nga perdorimi gabim<br/>
-        • Demet e shkaktuara nga aksidentet<br/>
-        • Demet e shkaktuara nga modifikimet e produktit<br/>
-        • Konsumimin normal te produktit<br/><br/>
-        
-        Per te aktivizuar garancine, kontaktoni:<br/>
-        Telefon: [NUMRI I TELEFONIT]<br/>
-        Email: [EMAIL ADRESA]<br/>
-        Adresa: [ADRESA E PLOTE]
+        disclaimer_text = """
+        Para se të blini produktin, kontrollojeni nëse është në gjendje të rregullt dhe nëse përmban të gjitha pjesët përkatëse që ofrohen me paketimin. Detyrimisht kjo fletë garancie duhet të nënshkruhet nga të dyja palët dhe të vuloset nga shitësi.<br/>
+        Para se të blini produktin, kërkoni informacione të sakta lidhur me cilësinë, karakteristikat, mënyrën e përdorimit, montimin dhe kushtet e pagesës, si dhe lexoni me vëmendje kushtet e garancisë më poshtë:
         """
         
-        story.append(Paragraph(terms_text, terms_style))
-        story.append(Spacer(1, 40))
+        story.append(Paragraph(disclaimer_text, disclaimer_style))
+        story.append(Spacer(1, 15))
         
-        # Signature section
-        story.append(Paragraph("Nenshkrimi: _________________________", signature_style))
-        story.append(Paragraph("Data: _________________________", signature_style))
+        # Add bold section title
+        section_title_style = ParagraphStyle(
+            'SectionTitle',
+            parent=styles['Normal'],
+            fontSize=10,
+            fontName='Helvetica-Bold',
+            textColor=black,
+            spaceAfter=10,
+            alignment=TA_LEFT
+        )
+        
+        story.append(Paragraph("Kushtet e përgjithshme të garancisë:", section_title_style))
+        story.append(Spacer(1, 5))
+        
+        # Add warranty terms with bullet points
+        terms_style = ParagraphStyle(
+            'WarrantyTerms',
+            parent=styles['Normal'],
+            fontSize=7,
+            fontName='Helvetica',
+            textColor=black,
+            spaceAfter=3,
+            alignment=TA_LEFT,
+            leftIndent=10,
+            bulletIndent=5
+        )
+        
+        warranty_terms = [
+            "Periudha e garancisë është e vlefshme vetëm brenda kohës së lartpërmendur në këtë fletë garancie, duke filluar nga data e blerjes.",
+            "Garancia vlen vetëm për riparimin e produktit, në rast se produkti nuk mund të riparohet brenda afatit të përcaktuar prej dyzet e pesë ditësh atëherë, \"Supermart\" i ofron blerësit zëvendësim të produktit por në asnjë mënyrë kthimin e tij apo të pagesës.",
+            "Periudha e reklamimit është e vlefshme për 24 orë, nëse brenda kësaj periudhe është vërejtur se produkti nuk funksionon si duhet atëherë, \"Supermart\" do të zëvendësojë produktin vetëm pasi të verifikohet nga tekniku përkatës që teknikisht është në gjendje të mirë dhe nuk është dëmtuar nga ana e blerësit.",
+            "Blerësi është i detyruar që në momentin e dorëzimit të produktit për servis të prezantojë: faturën e blerjes ose kuponin fiskal dhe fletën e garancisë të plotësuar me të gjitha informacionet e nevojshme dhe të sakta, të nënshkruar nga të dyja palët dhe të vulosur nga shitësi. Në mungesë të ndonjë dokumenti apo informacioni të lartpërmendur garancia është e pavlefshme.",
+            "Shërbimet duhet të kryhen vetëm nga \"Supermart\" ose në serviset e autorizuara prej \"Supermart\".",
+            "Blerësi është i detyruar të përdorë produktin duke zbatuar udhëzimet dhe manualin e përdorimit. Garancia nuk do të jetë e vlefshme nëse dëmtimi i produktit është shkaktuar si rezultat i moszbatimit të kushteve të përshkruara në manualin e përdorimit.",
+            "Në rastin kur blerësi dorëzon produktin për servis, është i detyruar të sjellë së bashku edhe pjesët përkatëse: karikuesin, pajisjet përcjellëse të energjisë, telekomandën, të heqë kodin e mbylljes (pasuordin , pinin, etj.), si dhe të ruajë të dhënat apo programet e tij personale. \"Supermart\" nuk merr asnjë përgjegjësi për humbjen apo dëmtimin e programeve aplikative, humbjen apo dëmtimin e shënimeve ose informacioneve të tjera.",
+            "Në rast defekti, \"Supermart\" është i detyruar të riparojë produktin brenda afatit maksimal prej 45 ditëve. Nëse produkti nuk mund të riparohet apo defekti nuk mund të eliminohet brenda afatit të garancisë atëherë, do të zëvendësohet me një të ri (nëse çmimi i produktit të ri ndryshon ose produkti në defekt është amortizuar, dëmtuar ose i mungon ndonjë pjesë, blerësi detyrohet të paguajë ndryshimin apo zhvlerësimin). Periudha e mbetur e garancisë të produktit paraprak do të jetë e vlefshme edhe për produktin e ri duke i shtuar ditët sa ka qëndruar në servis.",
+            "Pajisjet përcjellëse (të cilat cilësohen materiale të konsumueshme) si: telekomanda, bateria, karikuesi, kufjet, telekomanda, kabllot e ndryshme, filtrat etj., kanë vetëm 24 orë reklamim me kusht që nuk janë të dëmtuara fizikisht.",
+            "Garancia nuk përfshin sistemet operative apo aplikacionet e ndryshme softuerike. Ky shërbim mund të kryhet vetëm kundrejt pagesës për klientët që kanë ende garancinë për produktin në fjalë. \"Supermart\" nuk garanton për mosfunksionimin e aplikacioneve të palëve të treta.",
+            "Produkti duhet të dorëzohet për servis në \"Supermart\" së bashku me këto dy fletë garancie. Në rastet kur produkti vjen me garancinë origjinale të prodhuesit atëherë, përveç kushteve të përmendura në formën zyrtare nga \"Supermart\" duhet të zbatohen dhe kushtet shtesë të përmendura në këtë fletë garancie. Në mungesë të ndonjë dokumenti apo informacioni të lartpërmendur garancia është e pavlefshme.",
+            "Servisi në shtëpi mund të ofrohet vetëm kundrejt pagesës, në të kundërt klienti detyrohet të dorëzojë produktin për servis në njërën nga pikat e \"Supermart\"."
+        ]
+        
+        for term in warranty_terms:
+            story.append(Paragraph(f"• {term}", terms_style))
+        
+        story.append(Spacer(1, 10))
+        
+        # Add warranty exclusions and additional terms
+        exclusions_terms = [
+            "Garancia nuk është e vlefshme :",
+            "Në rastet kur dëmtimet janë shkaktuar nga goditjet, presioni fizik, keqpërdorimi ose pakujdesia dhe transporti i papërshtatshëm.",
+            "Në rastet e dëmtimeve të shkaktuara nga tensioni i lartë apo i ulët i rrymës elektrike, dëmtimet termike apo mekanike, rrufeja etj.",
+            "Në rastet kur produkti është ekspozuar ndaj lagështisë, nxehtësisë, korrozionit, pluhurit, tymit, dridhjeve, papastërtive, insekteve apo kushteve të tjera të jashtëzakonshme apo të papërshtatshme.",
+            "Në rastet kur numri i pikselave të vdekur në ekran nuk është me i lartë se shtatë në TV, katër në laptop, tre në tablet dhe në telefon.",
+            "Në rastet e keqpërdorimit të produktit nga ana e përdoruesit.",
+            "Në rastet kur produkti përdoret për qëllime tregtare (pa autorizimin e shitësit) si: restorante, hotele, kafene, pastrim kimik, sallone, shkolla etj.",
+            "Në rastet kur keqpërdoren kapacitetet teknike apo produkti montohet në mënyrë jo profesionale apo të gabuar.",
+            "Në rastet e përdorimit të pajisjeve lidhëse të cilat nuk janë pajisje përcjellëse të dizenjuara për këtë produkt.",
+            "Në rastet kur pjesët e xhamit, plastikës apo gomës dëmtohen si pasojë e keqpërdorimit, presionit, goditjeve të ndryshme të brendshme apo të jashtme.",
+            "Në rastet e ndryshimit apo modifikimit të programit \"sistemit operativ\" apo aplikacioneve softuerike.",
+            "Në rastet kur produktit i janë kryer shërbime apo instalime nga persona të paautorizuar nga \"Supermart\".",
+            "Në rastet kur ka mospërputhshmëri në mes të të dhënave në këtë fletë garancie dhe të produktit apo është tentuar ndryshimi tyre.",
+            "Garancia nuk mbulon ndërrimin, mbushjen, apo zëvendësimin e materialeve të konsumueshme, shërbimet e tilla mund të kryhen vetëm me pagesë.",
+            "Nëse kondicionerët montohen nga montues të \"Supermart\" garancia është e plotë, në të kundërt garancia ofrohet me kushte të tjera (kryesisht me periudhë të përgjysmuar). Gjithashtu nëse kondicionerët montohen nga montues të tjerë dhe montimi nuk është kryer në rregull atëherë kompania \"Supermart\" nuk merr përgjegjësi të ofrojë periudhë garantuese.",
+            "Montimi i kondicionerëve ofrohet brenda periudhës nga 1 deri në 5 ditë (përveç ditës së diel dhe festave zyrtare) dhe brenda intervalit kohor 08:30 - 20:00.",
+            "Ndërhyrja në kondicionerë ofrohet brenda periudhës nga 1 deri në 3 ditë (përveç ditës së diel dhe festave zyrtare) dhe brenda intervalit kohor 08:30 - 21:00.",
+            "Në rastet kur klienti kërkon shërbime nga servisi dhe konstatohet se produkti është në gjendje të rregullt apo problemi është krijuar si pasojë e përdorimit jo të përshtatshëm atëherë klienti detyrohet të paguajë të gjitha shpenzimet që i janë shkaktuar kompanisë \"Supermart\". Garancia mbulon produktin vetëm nëse defekti ka ardhur si pasojë e ndonjë gabimi të prodhuesit.",
+            "Nëse klienti ka shkelur ndonjërën nga pikat e lartpërmendura dhe riparimi i produktit në fjalë mund të realizohet, atëherë klienti është i detyruar të paguajë për pjesën e ndërruar, shërbimin, kohën dhe transportin e realizuar nga kompania \"Supermart\"",
+            "Në rastet kur janë shkelur rregullat e lartpërmendura dhe shërbimi i ofruar ose servisi e autorizuar nga \"Supermart\" duhet të faturohet, por klienti refuzon të paguaj detyrimin ndaj kompanisë atëherë garancia për produktin në fjalë do të bëhet e pavlefshme dhe kjo çështje do ti kalojë departamentit juridik për hapa të mëtejshëm sipas legjislacionit në fuqi të RSH."
+        ]
+        
+        for term in exclusions_terms:
+            story.append(Paragraph(f"• {term}", terms_style))
+        
+        story.append(Spacer(1, 15))
+        
+        # Signature section (three columns)
+        story.extend(self._create_signature_section())
+        
+        # Attention section at the bottom
+        story.append(Spacer(1, 20))
+        story.extend(self._create_attention_section())
+        
+        return story
+
+    def _create_signature_section(self):
+        """
+        Create three-column signature section for Buyer, Installer, Seller.
+        
+        Returns:
+            list: Story elements for the signature section
+        """
+        story = []
+        
+        # Styles
+        label_style = ParagraphStyle(
+            'SignLabel',
+            parent=getSampleStyleSheet()['Normal'],
+            fontSize=12,
+            fontName='Helvetica-Bold',
+            alignment=TA_CENTER,
+            spaceAfter=0
+        )
+        sub_label_style = ParagraphStyle(
+            'SignSubLabel',
+            parent=getSampleStyleSheet()['Normal'],
+            fontSize=10,
+            fontName='Helvetica',
+            alignment=TA_CENTER,
+            spaceAfter=0
+        )
+        
+        # Underline as a long line
+        underline_para = Paragraph("_" * 70, ParagraphStyle('UnderlineLine', fontSize=10, alignment=TA_CENTER, spaceAfter=6))
+        
+        # Build columns
+        col1 = [underline_para, Paragraph("Bleresi", label_style), Paragraph("(emer,mbiemer dhe nenshkirmi)", sub_label_style)]
+        col2 = [underline_para, Paragraph("Montuesi", label_style), Paragraph("(emer,mbiemer dhe nenshkrimi)", sub_label_style)]
+        col3 = [underline_para, Paragraph("Shitesi", label_style), Paragraph("(emer,mbiemer,nenshkrimi dhe vula)", sub_label_style)]
+        
+        table = Table([[col1, col2, col3]], colWidths=[2.3*inch, 2.3*inch, 2.3*inch])
+        table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 12),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 12),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+        ]))
+        
+        story.append(Spacer(1, 12))
+        story.append(table)
+        
+        return story
+
+    def _create_attention_section(self):
+        """
+        Create the bottom attention section with a black box and explanatory text.
+        """
+        story = []
+        
+        # Left: black box with white bold text "Vëmendje"
+        attention_box = Table([["Vëmendje"]], colWidths=[2.7*inch], rowHeights=[0.9*inch])
+        attention_box.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), black),
+            ('TEXTCOLOR', (0, 0), (-1, -1), 'white'),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 24),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 20),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+        ]))
+        
+        # Right: paragraph text
+        right_style = ParagraphStyle(
+            'AttentionText',
+            parent=getSampleStyleSheet()['Normal'],
+            fontSize=10,
+            fontName='Helvetica',
+            alignment=TA_LEFT,
+            spaceAfter=0
+        )
+        right_para = Paragraph(
+            "Blerësi konfirmon se bleu produktin në kushte të mira dhe me të gjitha pjesët përkatëse. Blerësi konfirmon se i ka lexuar kushtet e lartpërmendura në këtë fletë garancie dhe do ti përmbahet rregullave për çdo pikë të lartpërmendur, në të kundërtën pajtohet se garancia do të jetë e pavlefshme!.",
+            right_style
+        )
+        
+        table = Table([[attention_box, right_para]], colWidths=[3.1*inch, 3.7*inch])
+        table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+        ]))
+        
+        story.append(table)
+        return story
+
+    def _create_header_section(self):
+        """
+        Create header section with logo on the left and contact information on the right.
+        
+        Returns:
+            list: Story elements for the header section
+        """
+        story = []
+        
+        try:
+            # Get the logo path
+            module_path = os.path.dirname(os.path.dirname(__file__))
+            logo_path = os.path.join(module_path, 'static', 'data', 'logo.png')
+            
+            # Check if logo exists
+            if os.path.exists(logo_path):
+                # Create logo image
+                logo = Image(logo_path, width=2*inch, height=1.5*inch)
+            else:
+                # Create a placeholder if logo doesn't exist
+                logo = Paragraph("LOGO", ParagraphStyle(
+                    'LogoPlaceholder',
+                    fontSize=24,
+                    fontName='Helvetica-Bold',
+                    textColor=black,
+                    alignment=TA_CENTER
+                ))
+            
+            # Create contact information table
+            contact_data = [
+                ['Adresa', 'Rr Mihal Grameno, 10m mbi BKT Tirane Albania'],
+                ['Shërbimi i', '0697015351'],
+                ['klientit', ''],
+                ['E-mail', 'info@supermart.al'],
+                ['Web', 'www.supermart.al']
+            ]
+            
+            # Create table with contact information
+            contact_table = Table(contact_data, colWidths=[1.5*inch, 3*inch])
+            contact_table.setStyle(TableStyle([
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 0), (-1, -1), 12),
+                ('TEXTCOLOR', (0, 0), (0, -1), orange),
+                ('TEXTCOLOR', (1, 0), (1, -1), black),
+                ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                ('TOPPADDING', (0, 0), (-1, -1), 2),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+            ]))
+            
+            # Create header table with logo and contact info
+            header_data = [[logo, contact_table]]
+            header_table = Table(header_data, colWidths=[2.5*inch, 4.5*inch])
+            header_table.setStyle(TableStyle([
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                ('TOPPADDING', (0, 0), (-1, -1), 0),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+            ]))
+            
+            story.append(header_table)
+            
+        except Exception as e:
+            _logger.error(f'Error creating header section: {str(e)}')
+            # Fallback: create simple header without logo
+            story.append(Paragraph("SUPERMART", ParagraphStyle(
+                'HeaderFallback',
+                fontSize=20,
+                fontName='Helvetica-Bold',
+                textColor=black,
+                alignment=TA_CENTER
+            )))
+        
+        return story
+
+    def _create_customer_product_section(self, customer_name, product_name, warranty_period):
+        """
+        Create customer and product information section with FLETË GARANCIE box.
+        
+        Args:
+            customer_name (str): Customer name
+            product_name (str): Product name
+            warranty_period (str): Warranty period in months
+            
+        Returns:
+            list: Story elements for the customer/product section
+        """
+        story = []
+        
+        try:
+            # Create styles for the form fields
+            form_label_style = ParagraphStyle(
+                'FormLabel',
+                parent=getSampleStyleSheet()['Normal'],
+                fontSize=9,
+                fontName='Helvetica',
+                textColor=black,
+                spaceAfter=5
+            )
+            
+            # Create the left side content with form fields
+            left_content = []
+            
+            # Emer Mbiemer field
+            left_content.append(Paragraph("Emer Mbiemer:", form_label_style))
+            left_content.append(Paragraph("_" * 50, ParagraphStyle(
+                'Underline',
+                fontSize=9,
+                fontName='Helvetica',
+                textColor=black,
+                spaceAfter=15
+            )))
+            
+            # Marka field
+            left_content.append(Paragraph("Marka:", form_label_style))
+            left_content.append(Paragraph("_" * 30, ParagraphStyle(
+                'Underline',
+                fontSize=9,
+                fontName='Helvetica',
+                textColor=black,
+                spaceAfter=15
+            )))
+            
+            # Afati Garancise field
+            left_content.append(Paragraph("Afati Garancise:", form_label_style))
+            left_content.append(Paragraph("_" * 15 + " Muaj", ParagraphStyle(
+                'Underline',
+                fontSize=9,
+                fontName='Helvetica',
+                textColor=black,
+                spaceAfter=5
+            )))
+            
+            # Create the right side content - FLETË GARANCIE box
+            flete_garancie_style = ParagraphStyle(
+                'FleteGarancie',
+                fontSize=16,
+                fontName='Helvetica-Bold',
+                textColor=black,
+                alignment=TA_CENTER,
+                spaceAfter=0
+            )
+            
+            # Create a table cell with black background for FLETË GARANCIE
+            flete_garancie_cell = Table([["FLETË GARANCIE"]], colWidths=[2.5*inch])
+            flete_garancie_cell.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (0, 0), black),
+                ('TEXTCOLOR', (0, 0), (0, 0), 'white'),
+                ('ALIGN', (0, 0), (0, 0), 'CENTER'),
+                ('VALIGN', (0, 0), (0, 0), 'MIDDLE'),
+                ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (0, 0), 16),
+                ('LEFTPADDING', (0, 0), (0, 0), 10),
+                ('RIGHTPADDING', (0, 0), (0, 0), 10),
+                ('TOPPADDING', (0, 0), (0, 0), 15),
+                ('BOTTOMPADDING', (0, 0), (0, 0), 15),
+            ]))
+            
+            # Create the main table with left and right content
+            main_data = [[left_content, flete_garancie_cell]]
+            main_table = Table(main_data, colWidths=[3.5*inch, 2.5*inch])
+            main_table.setStyle(TableStyle([
+                ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+                ('ALIGN', (1, 0), (1, 0), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                ('TOPPADDING', (0, 0), (-1, -1), 0),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+            ]))
+            
+            story.append(main_table)
+            
+        except Exception as e:
+            _logger.error(f'Error creating customer/product section: {str(e)}')
+            # Fallback: create simple section
+            story.append(Paragraph("Emer Mbiemer: " + customer_name, form_label_style))
+            story.append(Paragraph("Marka: " + product_name, form_label_style))
+            story.append(Paragraph("Afati Garancise: " + warranty_period + " Muaj", form_label_style))
         
         return story
 
