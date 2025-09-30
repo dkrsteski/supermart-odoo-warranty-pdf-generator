@@ -631,7 +631,7 @@ class AccountMoveWarranty(models.Model):
                 'FormLabel',
                 parent=getSampleStyleSheet()['Normal'],
                 fontSize=8,
-                fontName='DejaVuSans',
+                fontName='Times-Roman',
                 textColor=black,
                 spaceAfter=1
             )
@@ -651,7 +651,7 @@ class AccountMoveWarranty(models.Model):
                     Paragraph(safe_customer_name, ParagraphStyle(
                         'Value',
                         fontSize=8,
-                        fontName='DejaVuSans',
+                        fontName='Times-Roman',
                         textColor=black,
                         spaceAfter=2
                     ))
@@ -661,7 +661,7 @@ class AccountMoveWarranty(models.Model):
                     Paragraph(safe_product_name, ParagraphStyle(
                         'Value',
                         fontSize=8,
-                        fontName='DejaVuSans',
+                        fontName='Times-Roman',
                         textColor=black,
                         spaceAfter=2
                     ))
@@ -671,7 +671,7 @@ class AccountMoveWarranty(models.Model):
                     Paragraph(f"{safe_warranty_period} Muaj", ParagraphStyle(
                         'Value',
                         fontSize=8,
-                        fontName='DejaVuSans',
+                        fontName='Times-Roman',
                         textColor=black,
                         spaceAfter=2
                     ))
