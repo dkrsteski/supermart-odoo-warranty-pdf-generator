@@ -392,13 +392,13 @@ class AccountMoveWarranty(models.Model):
 
         story.append(
         ListFlowable(
-        [ListItem(Paragraph(term, terms_style), leftIndent=4) for term in warranty_terms],
-        bulletType='bullet',
-        bulletFontName='Helvetica',
-        bulletFontSize=6,
-        bulletDedent=4,
-        bulletOffsetY=0,
-    )
+            [ListItem(Paragraph(term, terms_style), leftIndent=4) for term in warranty_terms],
+            bulletType='bullet',
+            bulletFontName='Helvetica',
+            bulletFontSize=6,
+            bulletDedent=4,
+            bulletOffsetY=0,
+        )
 )
         
                 
@@ -428,13 +428,13 @@ class AccountMoveWarranty(models.Model):
         
         story.append(
         ListFlowable(
-        [ListItem(Paragraph(term, terms_style), leftIndent=4) for term in exclusions_terms],
-        bulletType='bullet',
-        bulletFontName='Helvetica',
-        bulletFontSize=6,
-        bulletDedent=4,
-        bulletOffsetY=0,
-    )
+            [ListItem(Paragraph(term, terms_style), leftIndent=4) for term in exclusions_terms],
+            bulletType='bullet',
+            bulletFontName='Helvetica',
+            bulletFontSize=6,
+            bulletDedent=4,
+            bulletOffsetY=0,
+        )
 )
         # Signature section (three columns)
         story.extend(self._create_signature_section())
