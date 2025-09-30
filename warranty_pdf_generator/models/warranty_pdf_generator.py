@@ -246,8 +246,8 @@ class AccountMoveWarranty(models.Model):
         title_style = ParagraphStyle(
             'WarrantyTitle',
             parent=styles['Heading1'],
-            fontSize=28,
-            spaceAfter=40,
+            fontSize=20,
+            spaceAfter=20,
             alignment=TA_CENTER,
             fontName='Helvetica-Bold',
             textColor=black
@@ -256,8 +256,8 @@ class AccountMoveWarranty(models.Model):
         subtitle_style = ParagraphStyle(
             'WarrantySubtitle',
             parent=styles['Heading2'],
-            fontSize=16,
-            spaceAfter=20,
+            fontSize=12,
+            spaceAfter=10,
             alignment=TA_CENTER,
             fontName='Helvetica',
             textColor=black
@@ -266,8 +266,8 @@ class AccountMoveWarranty(models.Model):
         field_style = ParagraphStyle(
             'WarrantyField',
             parent=styles['Normal'],
-            fontSize=14,
-            spaceAfter=15,
+            fontSize=10,
+            spaceAfter=6,
             fontName='Helvetica-Bold',
             textColor=black
         )
@@ -275,8 +275,8 @@ class AccountMoveWarranty(models.Model):
         value_style = ParagraphStyle(
             'WarrantyValue',
             parent=styles['Normal'],
-            fontSize=14,
-            spaceAfter=15,
+            fontSize=10,
+            spaceAfter=6,
             fontName='Helvetica',
             textColor=black
         )
@@ -304,19 +304,19 @@ class AccountMoveWarranty(models.Model):
         contact_label_style = ParagraphStyle(
             'ContactLabel',
             parent=styles['Normal'],
-            fontSize=12,
+            fontSize=8,
             fontName='Helvetica-Bold',
             textColor=orange,
-            spaceAfter=5
+            spaceAfter=2
         )
         
         contact_value_style = ParagraphStyle(
             'ContactValue',
             parent=styles['Normal'],
-            fontSize=12,
+            fontSize=8,
             fontName='Helvetica',
             textColor=black,
-            spaceAfter=5
+            spaceAfter=2
         )
         
         # Build story
@@ -324,20 +324,20 @@ class AccountMoveWarranty(models.Model):
         
         # Header section with logo and contact info
         story.extend(self._create_header_section())
-        story.append(Spacer(1, 20))
+        story.append(Spacer(1, 10))
         
         # Customer and product information section with FLETË GARANCIE box
         story.extend(self._create_customer_product_section(customer_name, product_name, warranty_period))
-        story.append(Spacer(1, 20))
+        story.append(Spacer(1, 10))
         
         # Add italic disclaimer text
         disclaimer_style = ParagraphStyle(
             'Disclaimer',
             parent=styles['Normal'],
-            fontSize=7,
+            fontSize=6,
             fontName='Helvetica-Oblique',
             textColor=black,
-            spaceAfter=5,
+            spaceAfter=3,
             alignment=TA_LEFT
         )
         
@@ -347,33 +347,33 @@ class AccountMoveWarranty(models.Model):
         """
         
         story.append(Paragraph(disclaimer_text, disclaimer_style))
-        story.append(Spacer(1, 15))
+        story.append(Spacer(1, 8))
         
         # Add bold section title
         section_title_style = ParagraphStyle(
             'SectionTitle',
             parent=styles['Normal'],
-            fontSize=10,
+            fontSize=9,
             fontName='Helvetica-Bold',
             textColor=black,
-            spaceAfter=10,
+            spaceAfter=6,
             alignment=TA_LEFT
         )
         
         story.append(Paragraph("Kushtet e përgjithshme të garancisë:", section_title_style))
-        story.append(Spacer(1, 5))
+        story.append(Spacer(1, 3))
         
         # Add warranty terms with bullet points
         terms_style = ParagraphStyle(
             'WarrantyTerms',
             parent=styles['Normal'],
-            fontSize=7,
+            fontSize=6,
             fontName='Helvetica',
             textColor=black,
-            spaceAfter=1,
+            spaceAfter=0,
             alignment=TA_LEFT,
-            leftIndent=10,
-            bulletIndent=5
+            leftIndent=8,
+            bulletIndent=4
         )
         
         warranty_terms = [
@@ -394,7 +394,7 @@ class AccountMoveWarranty(models.Model):
         for term in warranty_terms:
             story.append(Paragraph(f"• {term}", terms_style))
         
-        story.append(Spacer(1, 5))
+        story.append(Spacer(1, 4))
         
         # Add warranty exclusions and additional terms
         exclusions_terms = [
@@ -423,13 +423,13 @@ class AccountMoveWarranty(models.Model):
         for term in exclusions_terms:
             story.append(Paragraph(f"• {term}", terms_style))
         
-        story.append(Spacer(1, 15))
+        story.append(Spacer(1, 8))
         
         # Signature section (three columns)
         story.extend(self._create_signature_section())
         
         # Attention section at the bottom
-        story.append(Spacer(1, 20))
+        story.append(Spacer(1, 12))
         story.extend(self._create_attention_section())
         
         return story
@@ -447,7 +447,7 @@ class AccountMoveWarranty(models.Model):
         label_style = ParagraphStyle(
             'SignLabel',
             parent=getSampleStyleSheet()['Normal'],
-            fontSize=12,
+            fontSize=9,
             fontName='Helvetica-Bold',
             alignment=TA_CENTER,
             spaceAfter=0
@@ -455,31 +455,31 @@ class AccountMoveWarranty(models.Model):
         sub_label_style = ParagraphStyle(
             'SignSubLabel',
             parent=getSampleStyleSheet()['Normal'],
-            fontSize=10,
+            fontSize=8,
             fontName='Helvetica',
             alignment=TA_CENTER,
             spaceAfter=0
         )
         
         # Underline as a long line
-        underline_para = Paragraph("_" * 30, ParagraphStyle('UnderlineLine', fontSize=7, alignment=TA_CENTER, spaceAfter=6))
+        underline_para = Paragraph("_" * 30, ParagraphStyle('UnderlineLine', fontSize=6, alignment=TA_CENTER, spaceAfter=4))
         
         # Build columns
         col1 = [underline_para, Paragraph("Bleresi", label_style), Paragraph("(emer,mbiemer dhe nenshkirmi)", sub_label_style)]
         col2 = [underline_para, Paragraph("Montuesi", label_style), Paragraph("(emer,mbiemer dhe nenshkrimi)", sub_label_style)]
         col3 = [underline_para, Paragraph("Shitesi", label_style), Paragraph("(emer,mbiemer,nenshkrimi dhe vula)", sub_label_style)]
         
-        table = Table([[col1, col2, col3]], colWidths=[2.3*inch, 2.3*inch, 2.3*inch])
+        table = Table([[col1, col2, col3]], colWidths=[2.2*inch, 2.2*inch, 2.2*inch])
         table.setStyle(TableStyle([
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 12),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 12),
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
             ('TOPPADDING', (0, 0), (-1, -1), 0),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
         ]))
         
-        story.append(Spacer(1, 12))
+        story.append(Spacer(1, 8))
         story.append(table)
         
         return story
@@ -491,23 +491,23 @@ class AccountMoveWarranty(models.Model):
         story = []
         
         # Left: black box with white bold text "Vëmendje"
-        attention_box = Table([["Vëmendje"]], colWidths=[2.7*inch], rowHeights=[0.9*inch])
+        attention_box = Table([["Vëmendje"]], colWidths=[2.5*inch], rowHeights=[0.7*inch])
         attention_box.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, -1), black),
             ('TEXTCOLOR', (0, 0), (-1, -1), 'white'),
             ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 24),
+            ('FONTSIZE', (0, 0), (-1, -1), 18),
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 20),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+            ('LEFTPADDING', (0, 0), (-1, -1), 12),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
         ]))
         
         # Right: paragraph text
         right_style = ParagraphStyle(
             'AttentionText',
             parent=getSampleStyleSheet()['Normal'],
-            fontSize=10,
+            fontSize=8,
             fontName='Helvetica',
             alignment=TA_LEFT,
             spaceAfter=0
@@ -517,7 +517,7 @@ class AccountMoveWarranty(models.Model):
             right_style
         )
         
-        table = Table([[attention_box, right_para]], colWidths=[3.1*inch, 3.7*inch])
+        table = Table([[attention_box, right_para]], colWidths=[3.0*inch, 3.8*inch])
         table.setStyle(TableStyle([
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
@@ -547,7 +547,7 @@ class AccountMoveWarranty(models.Model):
             # Check if logo exists
             if os.path.exists(logo_path):
                 # Create logo image
-                logo = Image(logo_path, width=2*inch, height=1*inch)
+                logo = Image(logo_path, width=2*inch, height=0.5*inch)
             else:
                 # Create a placeholder if logo doesn't exist
                 logo = Paragraph("LOGO", ParagraphStyle(
@@ -561,8 +561,7 @@ class AccountMoveWarranty(models.Model):
             # Create contact information table
             contact_data = [
                 ['Adresa', 'Rr Mihal Grameno, 10m mbi BKT Tirane Albania'],
-                ['Shërbimi i', '0697015351'],
-                ['klientit', ''],
+                ['Shërbimi i klientit', '0697015351'],
                 ['E-mail', 'info@supermart.al'],
                 ['Web', 'www.supermart.al']
             ]
@@ -574,13 +573,13 @@ class AccountMoveWarranty(models.Model):
                 ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                 ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
                 ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
-                ('FONTSIZE', (0, 0), (-1, -1), 9),
+                ('FONTSIZE', (0, 0), (-1, -1), 8),
                 ('TEXTCOLOR', (0, 0), (0, -1), orange),
                 ('TEXTCOLOR', (1, 0), (1, -1), black),
                 ('LEFTPADDING', (0, 0), (-1, -1), 0),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 10),
-                ('TOPPADDING', (0, 0), (-1, -1), 2),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                ('TOPPADDING', (0, 0), (-1, -1), 1),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
             ]))
             
             # Create header table with logo and contact info
@@ -629,49 +628,63 @@ class AccountMoveWarranty(models.Model):
             form_label_style = ParagraphStyle(
                 'FormLabel',
                 parent=getSampleStyleSheet()['Normal'],
-                fontSize=9,
+                fontSize=8,
                 fontName='Helvetica',
                 textColor=black,
-                spaceAfter=2
+                spaceAfter=1
             )
             
-            # Create the left side content with form fields
+            # Create the left side content with form fields in a single row
             left_content = []
             
-            # Emer Mbiemer field
-            left_content.append(Paragraph("Emer Mbiemer:", form_label_style))
-            left_content.append(Paragraph(customer_name, ParagraphStyle(
-                'Value',
-                fontSize=9,
-                fontName='Helvetica',
-                textColor=black,
-                spaceAfter=5
-            )))
+            # Create a table with three columns for Emer Mbiemer, Marka, and Afati
+            form_data = [
+                [
+                    Paragraph("Emer Mbiemer:", form_label_style),
+                    Paragraph("Marka:", form_label_style),
+                    Paragraph("Afati Garancise:", form_label_style)
+                ],
+                [
+                    Paragraph(customer_name, ParagraphStyle(
+                        'Value',
+                        fontSize=8,
+                        fontName='Helvetica',
+                        textColor=black,
+                        spaceAfter=2
+                    )),
+                    Paragraph(product_name, ParagraphStyle(
+                        'Value',
+                        fontSize=8,
+                        fontName='Helvetica',
+                        textColor=black,
+                        spaceAfter=2
+                    )),
+                    Paragraph(f"{warranty_period} Muaj", ParagraphStyle(
+                        'Value',
+                        fontSize=8,
+                        fontName='Helvetica',
+                        textColor=black,
+                        spaceAfter=2
+                    ))
+                ]
+            ]
             
-            # Marka field
-            left_content.append(Paragraph("Marka:", form_label_style))
-            left_content.append(Paragraph(product_name, ParagraphStyle(
-                'Value',
-                fontSize=9,
-                fontName='Helvetica',
-                textColor=black,
-                spaceAfter=5
-            )))
+            form_table = Table(form_data, colWidths=[1.0*inch, 1.0*inch, 0.9*inch])
+            form_table.setStyle(TableStyle([
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 3),
+                ('TOPPADDING', (0, 0), (-1, -1), 0),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+            ]))
             
-            # Afati Garancise field
-            left_content.append(Paragraph("Afati Garancise:", form_label_style))
-            left_content.append(Paragraph(f"{warranty_period} Muaj", ParagraphStyle(
-                'Value',
-                fontSize=9,
-                fontName='Helvetica',
-                textColor=black,
-                spaceAfter=5
-            )))
+            left_content.append(form_table)
             
             # Create the right side content - FLETË GARANCIE box
             flete_garancie_style = ParagraphStyle(
                 'FleteGarancie',
-                fontSize=16,
+                fontSize=12,
                 fontName='Helvetica-Bold',
                 textColor=black,
                 alignment=TA_CENTER,
@@ -686,11 +699,11 @@ class AccountMoveWarranty(models.Model):
                 ('ALIGN', (0, 0), (0, 0), 'CENTER'),
                 ('VALIGN', (0, 0), (0, 0), 'MIDDLE'),
                 ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (0, 0), 16),
-                ('LEFTPADDING', (0, 0), (0, 0), 10),
-                ('RIGHTPADDING', (0, 0), (0, 0), 10),
-                ('TOPPADDING', (0, 0), (0, 0), 15),
-                ('BOTTOMPADDING', (0, 0), (0, 0), 15),
+                ('FONTSIZE', (0, 0), (0, 0), 12),
+                ('LEFTPADDING', (0, 0), (0, 0), 8),
+                ('RIGHTPADDING', (0, 0), (0, 0), 8),
+                ('TOPPADDING', (0, 0), (0, 0), 10),
+                ('BOTTOMPADDING', (0, 0), (0, 0), 10),
             ]))
             
             # Create the main table with left and right content
