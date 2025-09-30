@@ -389,9 +389,18 @@ class AccountMoveWarranty(models.Model):
             "Produkti duhet të dorëzohet për servis në \"Supermart\" së bashku me këto dy fletë garancie. Në rastet kur produkti vjen me garancinë origjinale të prodhuesit atëherë, përveç kushteve të përmendura në formën zyrtare nga \"Supermart\" duhet të zbatohen dhe kushtet shtesë të përmendura në këtë fletë garancie. Në mungesë të ndonjë dokumenti apo informacioni të lartpërmendur garancia është e pavlefshme.",
             "Servisi në shtëpi mund të ofrohet vetëm kundrejt pagesës, në të kundërt klienti detyrohet të dorëzojë produktin për servis në njërën nga pikat e \"Supermart\"."
         ]
+
+        story.append(
+    ListFlowable(
+        [ListItem(Paragraph(term, terms_style), leftIndent=4) for term in warranty_terms],
+        bulletType='bullet',
+        bulletFontName='Helvetica',
+        bulletFontSize=6,
+        bulletDedent=4,
+        bulletOffsetY=0,
+    )
+)
         
-        for term in warranty_terms:
-            story.append(Paragraph(f"- {term}", terms_style))
                 
         # Add warranty exclusions and additional terms
         exclusions_terms = [
@@ -417,10 +426,16 @@ class AccountMoveWarranty(models.Model):
             "Në rastet kur janë shkelur rregullat e lartpërmendura dhe shërbimi i ofruar ose servisi e autorizuar nga \"Supermart\" duhet të faturohet, por klienti refuzon të paguaj detyrimin ndaj kompanisë atëherë garancia për produktin në fjalë do të bëhet e pavlefshme dhe kjo çështje do ti kalojë departamentit juridik për hapa të mëtejshëm sipas legjislacionit në fuqi të RSH."
         ]
         
-        for term in exclusions_terms:
-            story.append(Paragraph(f"- {term}", terms_style))
-        
-        
+        story.append(
+    ListFlowable(
+        [ListItem(Paragraph(term, terms_style), leftIndent=4) for term in exclusions_terms],
+        bulletType='bullet',
+        bulletFontName='Helvetica',
+        bulletFontSize=6,
+        bulletDedent=4,
+        bulletOffsetY=0,
+    )
+)
         # Signature section (three columns)
         story.extend(self._create_signature_section())
         
