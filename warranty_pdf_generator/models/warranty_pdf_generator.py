@@ -626,12 +626,12 @@ class AccountMoveWarranty(models.Model):
         story = []
         
         try:
-            # Create styles for the form fields
+            # Create styles for the form fields with UTF-8 compatible font
             form_label_style = ParagraphStyle(
                 'FormLabel',
                 parent=getSampleStyleSheet()['Normal'],
                 fontSize=8,
-                fontName='Helvetica',
+                fontName='DejaVuSans',
                 textColor=black,
                 spaceAfter=1
             )
@@ -651,7 +651,7 @@ class AccountMoveWarranty(models.Model):
                     Paragraph(safe_customer_name, ParagraphStyle(
                         'Value',
                         fontSize=8,
-                        fontName='Helvetica',
+                        fontName='DejaVuSans',
                         textColor=black,
                         spaceAfter=2
                     ))
@@ -661,7 +661,7 @@ class AccountMoveWarranty(models.Model):
                     Paragraph(safe_product_name, ParagraphStyle(
                         'Value',
                         fontSize=8,
-                        fontName='Helvetica',
+                        fontName='DejaVuSans',
                         textColor=black,
                         spaceAfter=2
                     ))
@@ -671,7 +671,7 @@ class AccountMoveWarranty(models.Model):
                     Paragraph(f"{safe_warranty_period} Muaj", ParagraphStyle(
                         'Value',
                         fontSize=8,
-                        fontName='Helvetica',
+                        fontName='DejaVuSans',
                         textColor=black,
                         spaceAfter=2
                     ))
