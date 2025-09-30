@@ -367,8 +367,8 @@ class AccountMoveWarranty(models.Model):
             fontSize=7,
             fontName='Helvetica',
             textColor=black,
-            spaceAfter=0,
-            spaceBefore=0,
+            spaceAfter=1,
+            spaceBefore=1,
             leading=7,
             alignment=TA_LEFT,
             leftIndent=4,
@@ -394,7 +394,7 @@ class AccountMoveWarranty(models.Model):
         
         # Create list items for warranty terms
         list_items = [ListItem(Paragraph(term, terms_style)) for term in warranty_terms]
-        warranty_list = ListFlowable(list_items, bulletType='bullet', start='bulletchar')
+        warranty_list = ListFlowable(list_items, bulletType='bullet', start='-')
         story.append(warranty_list)
 
         story.append(Paragraph("Garancia nuk është e vlefshme :", section_title_style))
@@ -424,7 +424,7 @@ class AccountMoveWarranty(models.Model):
         
         # Create list items for exclusions terms
         exclusions_list_items = [ListItem(Paragraph(term, terms_style)) for term in exclusions_terms]
-        exclusions_list = ListFlowable(exclusions_list_items, bulletType='bullet', start='bulletchar')
+        exclusions_list = ListFlowable(exclusions_list_items, bulletType='bullet', start='-')
         story.append(exclusions_list)
         
         
