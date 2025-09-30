@@ -359,7 +359,8 @@ class AccountMoveWarranty(models.Model):
             fontSize=9,
             fontName='Helvetica-Bold',
             textColor=black,
-            spaceAfter=1,
+            spaceAfter=2,
+            spaceBefore=2,
             alignment=TA_LEFT
         )
         
@@ -457,7 +458,7 @@ class AccountMoveWarranty(models.Model):
             fontSize=9,
             fontName='Helvetica-Bold',
             alignment=TA_CENTER,
-            spaceAfter=0
+            spaceAfter=2
         )
         sub_label_style = ParagraphStyle(
             'SignSubLabel',
@@ -465,7 +466,7 @@ class AccountMoveWarranty(models.Model):
             fontSize=8,
             fontName='Helvetica',
             alignment=TA_CENTER,
-            spaceAfter=0
+            spaceAfter=2
         )
         
         # Underline as a long line
