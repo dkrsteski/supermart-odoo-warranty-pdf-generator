@@ -368,6 +368,8 @@ class AccountMoveWarranty(models.Model):
             fontName='Helvetica',
             textColor=black,
             spaceAfter=0,
+            spaceBefore=0,
+            leading=7,
             alignment=TA_LEFT,
             leftIndent=4,
             bulletIndent=1
