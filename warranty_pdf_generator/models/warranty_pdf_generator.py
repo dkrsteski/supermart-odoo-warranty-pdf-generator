@@ -396,10 +396,11 @@ class AccountMoveWarranty(models.Model):
         list_items = [ListItem(Paragraph(term, terms_style)) for term in warranty_terms]
         warranty_list = ListFlowable(list_items, bulletType='bullet', start='bulletchar')
         story.append(warranty_list)
+
+        story.append(Paragraph("Garancia nuk është e vlefshme :", section_title_style))
                 
         # Add warranty exclusions and additional terms
         exclusions_terms = [
-            "Garancia nuk është e vlefshme :",
             "Në rastet kur dëmtimet janë shkaktuar nga goditjet, presioni fizik, keqpërdorimi ose pakujdesia dhe transporti i papërshtatshëm.",
             "Në rastet e dëmtimeve të shkaktuara nga tensioni i lartë apo i ulët i rrymës elektrike, dëmtimet termike apo mekanike, rrufeja etj.",
             "Në rastet kur produkti është ekspozuar ndaj lagështisë, nxehtësisë, korrozionit, pluhurit, tymit, dridhjeve, papastërtive, insekteve apo kushteve të tjera të jashtëzakonshme apo të papërshtatshme.",
