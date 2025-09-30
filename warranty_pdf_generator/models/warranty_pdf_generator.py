@@ -247,7 +247,7 @@ class AccountMoveWarranty(models.Model):
             'WarrantyTitle',
             parent=styles['Heading1'],
             fontSize=20,
-            spaceAfter=20,
+            spaceAfter=10,
             alignment=TA_CENTER,
             fontName='Helvetica-Bold',
             textColor=black
@@ -346,9 +346,7 @@ class AccountMoveWarranty(models.Model):
         Para se të blini produktin, kërkoni informacione të sakta lidhur me cilësinë, karakteristikat, mënyrën e përdorimit, montimin dhe kushtet e pagesës, si dhe lexoni me vëmendje kushtet e garancisë më poshtë:
         """
         
-        story.append(Paragraph(disclaimer_text, disclaimer_style))
-        story.append(Spacer(1, 8))
-        
+        story.append(Paragraph(disclaimer_text, disclaimer_style))        
         # Add bold section title
         section_title_style = ParagraphStyle(
             'SectionTitle',
@@ -356,12 +354,11 @@ class AccountMoveWarranty(models.Model):
             fontSize=9,
             fontName='Helvetica-Bold',
             textColor=black,
-            spaceAfter=6,
+            spaceAfter=1,
             alignment=TA_LEFT
         )
         
         story.append(Paragraph("Kushtet e përgjithshme të garancisë:", section_title_style))
-        story.append(Spacer(1, 3))
         
         # Add warranty terms with bullet points
         terms_style = ParagraphStyle(
@@ -372,8 +369,8 @@ class AccountMoveWarranty(models.Model):
             textColor=black,
             spaceAfter=0,
             alignment=TA_LEFT,
-            leftIndent=8,
-            bulletIndent=4
+            leftIndent=4,
+            bulletIndent=1
         )
         
         warranty_terms = [
@@ -392,10 +389,8 @@ class AccountMoveWarranty(models.Model):
         ]
         
         for term in warranty_terms:
-            story.append(Paragraph(f"• {term}", terms_style))
-        
-        story.append(Spacer(1, 4))
-        
+            story.append(Paragraph(f"- {term}", terms_style))
+                
         # Add warranty exclusions and additional terms
         exclusions_terms = [
             "Garancia nuk është e vlefshme :",
@@ -421,15 +416,13 @@ class AccountMoveWarranty(models.Model):
         ]
         
         for term in exclusions_terms:
-            story.append(Paragraph(f"• {term}", terms_style))
+            story.append(Paragraph(f"- {term}", terms_style))
         
-        story.append(Spacer(1, 8))
         
         # Signature section (three columns)
         story.extend(self._create_signature_section())
         
         # Attention section at the bottom
-        story.append(Spacer(1, 12))
         story.extend(self._create_attention_section())
         
         return story
