@@ -19,7 +19,7 @@ try:
     import subprocess
     import tempfile
 
-    pdfmetrics.registerFont(TTFont('DejaVuSerif', '/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf'))
+    pdfmetrics.registerFont(TTFont('DejaVuSans', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'))
 
 except ImportError as e:
     logging.getLogger(__name__).warning(f"Required libraries not installed: {e}. PDF generation will not work.")
@@ -636,7 +636,7 @@ class AccountMoveWarranty(models.Model):
                 'FormLabel',
                 parent=getSampleStyleSheet()['Normal'],
                 fontSize=8,
-                fontName='DejaVuSerif',
+                fontName='DejaVuSans',
                 textColor=black,
                 spaceAfter=1
             )
@@ -656,7 +656,7 @@ class AccountMoveWarranty(models.Model):
                     Paragraph(safe_customer_name, ParagraphStyle(
                         'Value',
                         fontSize=8,
-                        fontName='DejaVuSerif',
+                        fontName='DejaVuSans',
                         textColor=black,
                         spaceAfter=2
                     ))
@@ -666,7 +666,7 @@ class AccountMoveWarranty(models.Model):
                     Paragraph(safe_product_name, ParagraphStyle(
                         'Value',
                         fontSize=8,
-                        fontName='DejaVuSerif',
+                        fontName='DejaVuSans',
                         textColor=black,
                         spaceAfter=2
                     ))
@@ -676,7 +676,7 @@ class AccountMoveWarranty(models.Model):
                     Paragraph(f"{safe_warranty_period} Muaj", ParagraphStyle(
                         'Value',
                         fontSize=8,
-                        fontName='DejaVuSerif',
+                        fontName='DejaVuSans',
                         textColor=black,
                         spaceAfter=2
                     ))
