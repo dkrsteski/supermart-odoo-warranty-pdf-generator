@@ -391,7 +391,7 @@ class AccountMoveWarranty(models.Model):
         ]
 
         story.append(
-    ListFlowable(
+        ListFlowable(
         [ListItem(Paragraph(term, terms_style), leftIndent=4) for term in warranty_terms],
         bulletType='bullet',
         bulletFontName='Helvetica',
@@ -427,7 +427,7 @@ class AccountMoveWarranty(models.Model):
         ]
         
         story.append(
-    ListFlowable(
+        ListFlowable(
         [ListItem(Paragraph(term, terms_style), leftIndent=4) for term in exclusions_terms],
         bulletType='bullet',
         bulletFontName='Helvetica',
