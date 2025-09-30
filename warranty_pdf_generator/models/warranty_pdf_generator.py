@@ -640,10 +640,15 @@ class AccountMoveWarranty(models.Model):
             left_content = []
             
             # Create a table with three rows for Emer Mbiemer, Marka, and Afati
+            # Ensure proper UTF-8 encoding for customer and product names
+            safe_customer_name = customer_name.encode('utf-8').decode('utf-8') if customer_name else "___________________"
+            safe_product_name = product_name.encode('utf-8').decode('utf-8') if product_name else "________________"
+            safe_warranty_period = warranty_period.encode('utf-8').decode('utf-8') if warranty_period else "1"
+            
             form_data = [
                 [
                     Paragraph("Emer Mbiemer:", form_label_style),
-                    Paragraph(customer_name, ParagraphStyle(
+                    Paragraph(safe_customer_name, ParagraphStyle(
                         'Value',
                         fontSize=8,
                         fontName='Helvetica',
@@ -653,7 +658,7 @@ class AccountMoveWarranty(models.Model):
                 ],
                 [
                     Paragraph("Marka:", form_label_style),
-                    Paragraph(product_name, ParagraphStyle(
+                    Paragraph(safe_product_name, ParagraphStyle(
                         'Value',
                         fontSize=8,
                         fontName='Helvetica',
@@ -663,7 +668,7 @@ class AccountMoveWarranty(models.Model):
                 ],
                 [
                     Paragraph("Afati Garancise:", form_label_style),
-                    Paragraph(f"{warranty_period} Muaj", ParagraphStyle(
+                    Paragraph(f"{safe_warranty_period} Muaj", ParagraphStyle(
                         'Value',
                         fontSize=8,
                         fontName='Helvetica',
@@ -727,10 +732,13 @@ class AccountMoveWarranty(models.Model):
             
         except Exception as e:
             _logger.error(f'Error creating customer/product section: {str(e)}')
-            # Fallback: create simple section
-            story.append(Paragraph("Emer Mbiemer: " + customer_name, form_label_style))
-            story.append(Paragraph("Marka: " + product_name, form_label_style))
-            story.append(Paragraph("Afati Garancise: " + warranty_period + " Muaj", form_label_style))
+            # Fallback: create simple section with proper UTF-8 encoding
+            safe_customer_name = customer_name.encode('utf-8').decode('utf-8') if customer_name else "___________________"
+            safe_product_name = product_name.encode('utf-8').decode('utf-8') if product_name else "________________"
+            safe_warranty_period = warranty_period.encode('utf-8').decode('utf-8') if warranty_period else "1"
+            story.append(Paragraph("Emer Mbiemer: " + safe_customer_name, form_label_style))
+            story.append(Paragraph("Marka: " + safe_product_name, form_label_style))
+            story.append(Paragraph("Afati Garancise: " + safe_warranty_period + " Muaj", form_label_style))
         
         return story
 
