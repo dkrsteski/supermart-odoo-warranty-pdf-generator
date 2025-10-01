@@ -205,8 +205,12 @@ class AccountMoveWarranty(models.Model):
             # Get product brand/name
             product_name = product.name or "________________"
             
-            # Get warranty period (default to 1 if empty)
-            warranty_period = str(getattr(product, 'x_studio_warranty', '1')).replace(' muaj', '').replace(' month', '').strip()
+            # Get warranty period (default to 1 if empty or False)
+            warranty_value = getattr(product, 'x_studio_warranty', '1')
+            if warranty_value is False:
+                warranty_period = '1'
+            else:
+                warranty_period = str(warranty_value).replace(' muaj', '').replace(' month', '').strip()
             if not warranty_period or warranty_period == '':
                 warranty_period = '1'
             
