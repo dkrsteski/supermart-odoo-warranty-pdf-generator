@@ -63,6 +63,26 @@ class AccountMoveWarranty(models.Model):
                     }
                 }
             
+            # Pre-check for products without warranty (explicit False)
+            missing_warranty_products = []
+            for product in products:
+                if getattr(product, 'x_studio_warranty', None) is False:
+                    missing_warranty_products.append(product)
+
+            if missing_warranty_products and not self.env.context.get('confirm_missing_warranty'):
+                # Open confirmation wizard listing products with missing warranties
+                return {
+                    'type': 'ir.actions.act_window',
+                    'name': 'Missing Warranties',
+                    'res_model': 'warranty.missing.warranty.wizard',
+                    'view_mode': 'form',
+                    'target': 'new',
+                    'context': {
+                        'default_move_id': self.id,
+                        'default_product_ids': [(6, 0, [p.id for p in missing_warranty_products])],
+                    }
+                }
+
             # Generate filled warranty PDFs
             pdf_content = self._generate_filled_warranty_pdf(products)
             
@@ -858,3 +878,19 @@ class WarrantyPdfSettings(models.TransientModel):
                 'type': 'success',
             }
         }
+
+
+class WarrantyMissingWarrantyWizard(models.TransientModel):
+    _name = 'warranty.missing.warranty.wizard'
+    _description = 'Confirm Printing When Products Have No Warranty'
+
+    move_id = fields.Many2one('account.move', string='Invoice', required=True)
+    product_ids = fields.Many2many('product.product', string='Products Without Warranty', required=True)
+    warning_message = fields.Text(string='Warning', readonly=True, default=lambda self: 'Some products have no warranty set. Do you want to continue printing?')
+
+    def action_print(self):
+        self.ensure_one()
+        return self.move_id.with_context(confirm_missing_warranty=True).generate_warranty_pdfs()
+
+    def action_cancel(self):
+        return {'type': 'ir.actions.act_window_close'}

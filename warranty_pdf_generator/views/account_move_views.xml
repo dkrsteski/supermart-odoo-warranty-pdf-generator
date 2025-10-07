@@ -60,4 +60,26 @@
               parent="account.menu_finance_configuration"
               action="action_warranty_pdf_settings"
               sequence="100"/>
+
+    <!-- Wizard view for missing warranties -->
+    <record id="view_warranty_missing_warranty_wizard_form" model="ir.ui.view">
+        <field name="name">warranty.missing.warranty.wizard.form</field>
+        <field name="model">warranty.missing.warranty.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Missing Warranties">
+                <sheet>
+                    <group>
+                        <field name="move_id" invisible="1"/>
+                        <label string="Some products have no warranty set."/>
+                        <field name="warning_message" nolabel="1" readonly="1"/>
+                        <field name="product_ids" widget="many2many_tags" readonly="1"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_print" string="Print" type="object" class="btn-primary"/>
+                    <button name="action_cancel" string="Cancel" type="object" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
 </odoo>
