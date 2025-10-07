@@ -581,7 +581,7 @@ class AccountMoveWarranty(models.Model):
         try:
             # Get the logo path
             module_path = os.path.dirname(os.path.dirname(__file__))
-            logo_path = os.path.join(module_path, 'static', 'data', 'logo.png')
+            logo_path = os.path.join(module_path, 'static', 'data', 'logo.jpeg')
             
             # Check if logo exists
             if os.path.exists(logo_path):
