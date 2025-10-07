@@ -49,8 +49,15 @@ class AccountMoveWarranty(models.Model):
             # Get products from invoice lines
             products = []
             for line in self.invoice_line_ids:
-                if line.product_id and line.product_id.id != 7884:
-                    products.append(line.product_id)
+                if not line.product_id:
+                    continue
+                # Exclude specific product IDs and names
+                product = line.product_id
+                if product.id in (7884, 6):
+                    continue
+                if "Gift Card" in (product.display_name or ""):
+                    continue
+                products.append(product)
             
             if not products:
                 return {
