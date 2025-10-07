@@ -1,3 +1,5 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_warranty_pdf_settings_user,warranty.pdf.settings.user,model_warranty_pdf_settings,account.group_account_user,1,1,1,1
 access_warranty_pdf_settings_manager,warranty.pdf.settings.manager,model_warranty_pdf_settings,account.group_account_manager,1,1,1,1
+access_warranty_missing_wizard_user,warranty.missing.warranty.wizard.user,model_warranty_missing_warranty_wizard,account.group_account_user,1,0,1,0
+access_warranty_missing_wizard_manager,warranty.missing.warranty.wizard.manager,model_warranty_missing_warranty_wizard,account.group_account_manager,1,1,1,0
