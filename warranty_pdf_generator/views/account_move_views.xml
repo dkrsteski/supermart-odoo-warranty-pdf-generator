@@ -70,7 +70,7 @@
                 <sheet>
                     <group>
                         <field name="move_id" invisible="1"/>
-                        <label string="Some products have no warranty set."/>
+                        <div class="o_form_label">Some products have no warranty set.</div>
                         <field name="warning_message" nolabel="1" readonly="1"/>
                         <field name="product_ids" widget="many2many_tags" readonly="1"/>
                     </group>
