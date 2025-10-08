@@ -15,7 +15,14 @@ try:
     from reportlab.lib.units import inch
     from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
     from reportlab.lib.colors import black, blue, orange
-    from PyPDF2 import PdfWriter, PdfReader
+
+    # Support both PyPDF2 v1.x and v2.x+
+    try:
+        from PyPDF2 import PdfWriter, PdfReader
+    except ImportError:
+        # Fallback for PyPDF2 v1.x
+        from PyPDF2 import PdfFileWriter as PdfWriter, PdfFileReader as PdfReader
+
     import subprocess
     import tempfile
 
@@ -31,20 +38,7 @@ class AccountMoveWarranty(models.Model):
     _inherit = 'account.move'
 
     def generate_warranty_pdfs(self):
-        """
-        Generate warranty PDFs using the garancia.docx template with exact formatting.
-        
-        Business Rules:
-        - Use garancia.docx template from module directory
-        - Convert to PDF using LibreOffice to preserve exact formatting
-        - Fill customer name, product brand, warranty period
-        - Generate one PDF per product with warranty
-        - Exclude product with ID 7884
-        - Default to "1" month if warranty field is empty
-        
-        Returns:
-            dict: Action dictionary for file download
-        """
+     
         try:
             # Get products from invoice lines
             products = []
@@ -132,80 +126,6 @@ class AccountMoveWarranty(models.Model):
                     'type': 'danger',
                 }
             }
-
-    def _generate_filled_warranty_pdf(self, products):
-        """
-        Generate warranty PDF using the garancia.docx template with exact formatting.
-        
-        Args:
-            products: List of product.product records
-            
-        Returns:
-            bytes: PDF content as bytes
-        """
-        try:
-            # Get the template path from the warranty_pdf_generator module
-            module_path = os.path.dirname(os.path.dirname(__file__))
-            template_path = os.path.join(module_path, 'garancia.docx')
-            
-            if not os.path.exists(template_path):
-                _logger.error(f'Template file not found at: {template_path}')
-                return None
-            
-            # Create a new PDF writer for the final output
-            output_pdf = PdfWriter()
-            
-            # Process each product
-            for product in products:
-                filled_pdf = self._fill_warranty_template(template_path, product)
-                if filled_pdf:
-                    # Add the filled page to output
-                    reader = PdfReader(BytesIO(filled_pdf))
-                    for page in reader.pages:
-                        output_pdf.add_page(page)
-            
-            # Write final PDF to buffer
-            output_buffer = BytesIO()
-            output_pdf.write(output_buffer)
-            pdf_content = output_buffer.getvalue()
-            output_buffer.close()
-            
-            return pdf_content
-            
-        except Exception as e:
-            _logger.error(f'Error generating filled warranty PDF: {str(e)}')
-            return None
-
-    def _fill_warranty_template(self, template_path, product):
-        """
-        Create warranty PDF with product-specific data.
-        Falls back to direct PDF creation if LibreOffice is not available.
-        
-        Args:
-            template_path (str): Path to garancia.docx template (for reference)
-            product: Product record
-            
-        Returns:
-            bytes: Filled PDF content
-        """
-        try:
-            # Try to use LibreOffice conversion first
-            pdf_template_path = self._convert_docx_to_pdf_template(template_path)
-            if pdf_template_path:
-                # LibreOffice is available, use the converted template
-                with open(pdf_template_path, 'rb') as pdf_file:
-                    pdf_content = pdf_file.read()
-                os.unlink(pdf_template_path)
-                return pdf_content
-            else:
-                # LibreOffice not available, create PDF directly
-                _logger.info('LibreOffice not available, creating PDF directly')
-                return self._create_warranty_pdf_direct(product)
-            
-        except Exception as e:
-            _logger.error(f'Error creating warranty PDF for product {product.id}: {str(e)}')
-            # Fallback to direct PDF creation
-            return self._create_warranty_pdf_direct(product)
 
     def _create_warranty_pdf_direct(self, product):
         """
@@ -778,60 +698,6 @@ class AccountMoveWarranty(models.Model):
             story.append(Paragraph("Afati Garancise: " + safe_warranty_period + " Muaj", form_label_style))
         
         return story
-
-    def _convert_docx_to_pdf_template(self, docx_path):
-        """
-        Convert Word document template to PDF using LibreOffice.
-        
-        Args:
-            docx_path (str): Path to the Word document template
-            
-        Returns:
-            str: Path to the converted PDF template, or None if failed
-        """
-        try:
-            # Create temporary directory for output
-            temp_dir = tempfile.mkdtemp()
-            
-            # Use LibreOffice to convert DOCX to PDF
-            cmd = [
-                'libreoffice',
-                '--headless',
-                '--convert-to', 'pdf',
-                '--outdir', temp_dir,
-                docx_path
-            ]
-            
-            _logger.info(f'Converting DOCX to PDF: {docx_path}')
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-            
-            if result.returncode != 0:
-                _logger.error(f'LibreOffice conversion failed: {result.stderr}')
-                return None
-            
-            # Find the generated PDF file
-            base_name = os.path.splitext(os.path.basename(docx_path))[0]
-            pdf_path = os.path.join(temp_dir, f'{base_name}.pdf')
-            
-            if os.path.exists(pdf_path):
-                _logger.info(f'PDF template generated successfully: {pdf_path}')
-                return pdf_path
-            else:
-                _logger.error(f'PDF template not found at expected location: {pdf_path}')
-                # List files in temp directory for debugging
-                try:
-                    files = os.listdir(temp_dir)
-                    _logger.error(f'Files in temp directory: {files}')
-                except:
-                    pass
-                return None
-                
-        except subprocess.TimeoutExpired:
-            _logger.error('LibreOffice conversion timed out')
-            return None
-        except Exception as e:
-            _logger.error(f'Error converting DOCX template to PDF: {str(e)}')
-            return None
 
 
 class WarrantyPdfSettings(models.TransientModel):
