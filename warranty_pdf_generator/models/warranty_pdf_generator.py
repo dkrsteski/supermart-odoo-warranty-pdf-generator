@@ -85,7 +85,7 @@ class AccountMoveWarranty(models.Model):
                 }
 
             # Generate filled warranty PDFs
-            pdf_content = self._generate_filled_warranty_pdf(products)
+            pdf_content = self._create_warranty_pdf_direct(products)
             
             if not pdf_content:
                 return {
